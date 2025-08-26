@@ -113,6 +113,40 @@ db.get("SELECT MAX(id) as max_id FROM tickets", (err, row) => {
   if (!err && row.max_id) ticketCount = row.max_id;
 });
 
+// Helper function to check if user has required role
+function hasRequiredRole(member, requiredLevel) {
+  const guildSettings = serverSettings[member.guild.id] || {};
+  
+  // Server owner always has all permissions
+  if (member.id === member.guild.ownerId) return true;
+  
+  // Check custom set roles first
+  if (requiredLevel === 'owner') {
+    return guildSettings.ownerRoleId && member.roles.cache.has(guildSettings.ownerRoleId);
+  }
+  
+  if (requiredLevel === 'admin') {
+    const hasOwnerRole = guildSettings.ownerRoleId && member.roles.cache.has(guildSettings.ownerRoleId);
+    const hasAdminRole = guildSettings.adminRoleId && member.roles.cache.has(guildSettings.adminRoleId);
+    return hasOwnerRole || hasAdminRole;
+  }
+  
+  if (requiredLevel === 'mod') {
+    const hasOwnerRole = guildSettings.ownerRoleId && member.roles.cache.has(guildSettings.ownerRoleId);
+    const hasAdminRole = guildSettings.adminRoleId && member.roles.cache.has(guildSettings.adminRoleId);
+    const hasModRole = guildSettings.modRoleId && member.roles.cache.has(guildSettings.modRoleId);
+    return hasOwnerRole || hasAdminRole || hasModRole;
+  }
+  
+  // Fall back to default role names if custom roles aren't set
+  const roleNames = [];
+  if (requiredLevel === 'owner') roleNames.push('Owner');
+  if (requiredLevel === 'admin') roleNames.push('Owner', 'Admin');
+  if (requiredLevel === 'mod') roleNames.push('Owner', 'Admin', 'Moderator');
+  
+  return member.roles.cache.some(role => roleNames.includes(role.name));
+}
+
 // Rate limiting function
 function isRateLimited(userId, command, limit = 3, timeWindow = 10000) {
   if (!rateLimit.has(userId)) {
@@ -200,12 +234,12 @@ function addUserXP(userId, guildId, message) {
 
     if (levelChannel) {
       const levelUpEmbed = new EmbedBuilder()
-        .setColor('#00FF00')
-        .setTitle('🐠 Aquarium Builder Level Up!')
-        .setDescription(`Congratulations ${message.author}! Your aquarium building skills have improved to level **${newLevel}**! 🎉`)
+        .setColor('#FF4500')
+        .setTitle('🔥 Flamin\' Hot Gamer Level Up!')
+        .setDescription(`Congratulations ${message.author}! Your gaming skills have leveled up to **${newLevel}**! 🎉`)
         .setThumbnail(message.author.displayAvatarURL({ dynamic: true }))
         .addFields(
-          { name: '🏆 New Builder Level', value: `${newLevel}`, inline: true },
+          { name: '🏆 New Gamer Level', value: `${newLevel}`, inline: true },
           { name: '✨ Total Experience', value: `${userData.totalXP}`, inline: true }
         )
         .setTimestamp();
@@ -221,8 +255,7 @@ function addUserXP(userId, guildId, message) {
   saveLevels();
 }
 
-const token =
-  "MTM4MzUzNDg0MTg3MzY5ODkyOA.Ga_1_g.32OuMx4RjpyE_bLCiMj0U0OAhReDwXwGNF73lQ";
+const token = process.env.DISCORD_BOT_TOKEN;
 
 const client = new Client({
   intents: Object.values(GatewayIntentBits),
@@ -231,7 +264,7 @@ const client = new Client({
   restTimeOffset: 0,
   failIfNotExists: false,
   presence: {
-    activities: [{ name: `Build a Aquarium`, type: ActivityType.Playing }],
+    activities: [{ name: `Flamin' Hot Games`, type: ActivityType.Playing }],
     status: 'online'
   }
 });
@@ -280,9 +313,9 @@ client.once("ready", async () => {
 
   setInterval(() => {
     const activities = [
-      { name: `Build a Aquarium`, type: ActivityType.Playing },
-      { name: `${client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0)} aquarium builders`, type: ActivityType.Watching },
-      { name: `${client.guilds.cache.size} aquarium communities`, type: ActivityType.Competing }
+      { name: `Flamin' Hot Games`, type: ActivityType.Playing },
+      { name: `${client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0)} gamers`, type: ActivityType.Watching },
+      { name: `${client.guilds.cache.size} gaming communities`, type: ActivityType.Competing }
     ];
     client.user.setPresence({
       activities: [activities[Math.floor(Math.random() * activities.length)]],
@@ -363,10 +396,10 @@ client.on("guildMemberAdd", async (member) => {
 
     if (welcomeChannel) {
       const welcomeEmbed = new EmbedBuilder()
-        .setColor("#00FF00")
+        .setColor("#FF4500")
         .setTitle("New Member!")
         .setDescription(
-          `Welcome to our aquarium community, ${member}! Ready to build amazing aquariums together?`,
+          `Welcome to Flamin' Hot Games, ${member}! Ready to experience some spicy gaming action?`,
         )
         .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
         .setTimestamp()
@@ -377,9 +410,15 @@ client.on("guildMemberAdd", async (member) => {
       welcomeChannel.send({ embeds: [welcomeEmbed] });
     }
 
-    const memberRole = member.guild.roles.cache.find(
-      (role) => role.name === "Member",
-    );
+    // Use custom member role if set, otherwise fall back to default "Member" role
+    let memberRole = null;
+    
+    if (guildSettings.memberRoleId) {
+      memberRole = member.guild.roles.cache.get(guildSettings.memberRoleId);
+    } else {
+      memberRole = member.guild.roles.cache.find((role) => role.name === "Member");
+    }
+    
     if (memberRole) {
       await member.roles.add(memberRole);
     }
@@ -589,21 +628,7 @@ client.on("messageCreate", async (message) => {
       return;
     }
 
-    // Check for banned words
-    if (botSettings.badWordsFilterEnabled && badWords.some(word => content.includes(word))) {
-      await message.delete().catch(err => console.error('Could not delete message:', err));
-      const warning = await message.channel.send({
-        embeds: [
-          new EmbedBuilder()
-            .setColor('#FF0000')
-            .setTitle('⚠️ Language Warning')
-            .setDescription(`${message.author}, please watch your language! You have been muted for 30 seconds.`)
-        ]
-      });
-      await message.member.timeout(30 * 1000, 'Inappropriate language').catch(err => console.error('Could not timeout member:', err));
-      setTimeout(() => warning.delete().catch(() => {}), 5000);
-      return;
-    }
+    
   }
 
   if (!message.content.startsWith(prefix)) return;
@@ -706,20 +731,31 @@ client.on("messageCreate", async (message) => {
       owner: guild.roles.cache.find((role) => role.name === "Owner"),
       admin: guild.roles.cache.find((role) => role.name === "Admin"),
       moderator: guild.roles.cache.find((role) => role.name === "Moderator"),
-      clanOfficer: guild.roles.cache.find((role) => role.name === "Clan Officer"),
-      clanMember: guild.roles.cache.find((role) => role.name === "Clan Member"),
       member: guild.roles.cache.find((role) => role.name === "Member"),
+      bot: guild.roles.cache.find((role) => role.name === "Bot"),
+      announcementPing: guild.roles.cache.find((role) => role.name === "Announcement Ping"),
+      giveawayPing: guild.roles.cache.find((role) => role.name === "Giveaway Ping"),
     };
 
     // Check if the roles exist, create them if they don't
-    for (const roleName in roles) {
-      if (!roles[roleName]) {
+    const roleNames = {
+      owner: "Owner",
+      admin: "Admin", 
+      moderator: "Moderator",
+      member: "Member",
+      bot: "Bot",
+      announcementPing: "Announcement Ping",
+      giveawayPing: "Giveaway Ping"
+    };
+
+    for (const [key, roleName] of Object.entries(roleNames)) {
+      if (!roles[key]) {
         try {
           const newRole = await guild.roles.create({
-            name: roleName.charAt(0).toUpperCase() + roleName.slice(1), // Capitalize the first letter
+            name: roleName,
             reason: "Creating default roles for the server setup",
           });
-          roles[roleName] = newRole;
+          roles[key] = newRole;
           console.log(`Created role: ${roleName}`);
         } catch (error) {
           console.error(`Error creating role ${roleName}:`, error);
@@ -777,7 +813,7 @@ client.on("messageCreate", async (message) => {
   if (command === "help") {
     const isBotCommandsChannel = message.channel.name === "🤖┃bot-commands";
     const hasPermission = message.member.roles.cache.some((r) =>
-      ["Owner", "Admin", "Moderator", "Clan Officer"].includes(r.name),
+      ["Owner", "Admin", "Moderator"].includes(r.name),
     ) || message.author.id === message.guild.ownerId;
 
     if (!isBotCommandsChannel && !hasPermission) {
@@ -787,9 +823,9 @@ client.on("messageCreate", async (message) => {
     }
 
     const helpEmbed = new EmbedBuilder()
-      .setColor("#0099ff")
-      .setTitle("🐠 Build a Aquarium Bot Commands")
-      .setDescription("Here are all available commands for managing your aquarium community:")
+      .setColor("#FF4500")
+      .setTitle("🔥 Flamin' Hot Games Bot Commands")
+      .setDescription("Here are all available commands for managing your gaming community:")
       .addFields(
         {
           name: "🛠️ Admin Commands",
@@ -807,6 +843,10 @@ client.on("messageCreate", async (message) => {
 !set memberschannel #channel - Set human members count channel (Admin only)
 !set botschannel #channel - Set bot members count channel (Admin only)
 !set welcomechannel #channel - Set welcome messages channel (Admin only)
+!set ownerrole @role - Set the owner role (Owner only)
+!set adminrole @role - Set the admin role (Owner only)
+!set modrole @role - Set the moderator role (Admin+)
+!set memberrole @role - Set the member role (Admin+)
 !rr - Create a reaction roles panel for notification roles (Admin only)
 !setlvlchannel #channel - Set level up notification channel (Admin only)
 !serversetup - setup the channels and roles (Admin only)`,
@@ -824,11 +864,11 @@ client.on("messageCreate", async (message) => {
           inline: false,
         },
         {
-          name: "🐠 Aquarium Leveling",
+          name: "🔥 Gaming Leveling",
           value: `
-!lvl - View your aquarium builder level and XP
-!lvl @user - View another user's aquarium level
-!leaderboard - View top aquarium builders
+!lvl - View your gamer level and XP
+!lvl @user - View another user's gamer level
+!leaderboard - View top gamers
 !givexp @user amount - Give XP to a user (Owner only)
 !resetlevel @user - Reset a user's level (Owner only)`,
           inline: false,
@@ -851,26 +891,26 @@ client.on("messageCreate", async (message) => {
 
   if (command === "rules") {
     const rulesEmbed = new EmbedBuilder()
-      .setColor("#ff9900")
-      .setTitle("🐠 Build a Aquarium Community Rules")
-      .setDescription("Please follow these rules to keep our aquarium community friendly and helpful:")
+      .setColor("#FF4500")
+      .setTitle("🔥 Flamin' Hot Games Community Rules")
+      .setDescription("Please follow these rules to keep our gaming community spicy and fun:")
       .addFields(
         {
           name: "1. Be Respectful",
           value:
-            "Treat all aquarium builders with respect. No harassment, hate speech, or bullying.",
+            "Treat all gamers with respect. No harassment, hate speech, or bullying.",
         },
         {
           name: "2. No Spamming",
-          value: "Don't spam messages, emotes, or mentions. Keep chat clean like your aquarium!",
+          value: "Don't spam messages, emotes, or mentions. Keep chat as clean as your gameplay!",
         },
         {
           name: "3. Use Appropriate Channels",
-          value: "Post aquarium builds, tips, and discussions in the right channels.",
+          value: "Post gaming content, tips, and discussions in the right channels.",
         },
         {
           name: "4. Keep Content Appropriate",
-          value: "Keep all content family-friendly and aquarium-related.",
+          value: "Keep all content family-friendly and gaming-related.",
         },
         {
           name: "5. Follow Discord TOS",
@@ -881,8 +921,8 @@ client.on("messageCreate", async (message) => {
           value: "Follow instructions from server moderators and admins.",
         },
         {
-          name: "7. Share Your Builds",
-          value: "Feel free to share your amazing aquarium creations with the community!",
+          name: "7. Share Your Gaming",
+          value: "Feel free to share your amazing gaming moments and achievements with the community!",
         },
       )
       .setTimestamp();
@@ -1583,11 +1623,11 @@ client.on("messageCreate", async (message) => {
     const userData = userLevels.get(userKey) || { xp: 0, level: 1, totalXP: 0, messages: 0 };
 
     const embed = new EmbedBuilder()
-      .setColor('#0099ff')
-      .setTitle('🐠 Aquarium Builder Level')
-      .setDescription(`**${target.username}**'s aquarium building progress:`)
+      .setColor('#FF4500')
+      .setTitle('🔥 Flamin\' Hot Gamer Level')
+      .setDescription(`**${target.username}**'s gaming progress:`)
       .addFields(
-        { name: '🏆 Builder Level', value: `${userData.level}`, inline: true },
+        { name: '🏆 Gamer Level', value: `${userData.level}`, inline: true },
         { name: '✨ Current XP', value: `${userData.xp}/${calculateXPForLevel(userData.level + 1) - calculateXPForLevel(userData.level)}`, inline: true },
         { name: '💫 Total XP', value: `${userData.totalXP}`, inline: true },
         { name: '💬 Messages Sent', value: `${userData.messages}`, inline: true }
@@ -1613,9 +1653,9 @@ client.on("messageCreate", async (message) => {
     }
 
     const embed = new EmbedBuilder()
-      .setColor('#FFD700')
-      .setTitle('🏆 Top Aquarium Builders')
-      .setDescription('Here are the top aquarium builders in this community:')
+      .setColor('#FF4500')
+      .setTitle('🏆 Top Flamin\' Hot Gamers')
+      .setDescription('Here are the top gamers in this community:')
       .setTimestamp();
 
     let description = '';
@@ -1636,7 +1676,7 @@ client.on("messageCreate", async (message) => {
   }
 
   if (command === "givexp") {
-    if (!message.member.roles.cache.some(r => r.name === "Owner")) {
+    if (!hasRequiredRole(message.member, 'owner')) {
       return message.reply("Only owners can give XP to users!");
     }
 
@@ -1690,7 +1730,7 @@ client.on("messageCreate", async (message) => {
   }
 
   if (command === "resetlevel") {
-    if (!message.member.roles.cache.some(r => r.name === "Owner")) {
+    if (!hasRequiredRole(message.member, 'owner')) {
       return message.reply("Only owners can reset user levels!");
     }
 
@@ -1832,6 +1872,132 @@ client.on("messageCreate", async (message) => {
         ]
       });
     }
+    else if (subCommand === "ownerrole") {
+      // Only server owner can set this
+      if (message.author.id !== message.guild.ownerId) {
+        return message.reply({
+          embeds: [
+            new EmbedBuilder()
+              .setColor("#FF0000")
+              .setTitle("❌ Permission Denied")
+              .setDescription("Only the server owner can set the owner role.")
+          ]
+        });
+      }
+
+      const role = message.mentions.roles.first();
+      if (!role) {
+        return message.reply("Please mention a role to set as the owner role.");
+      }
+
+      guildSettings.ownerRoleId = role.id;
+      saveServerSettings();
+
+      message.reply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor("#00FF00")
+            .setTitle("✅ Role Set")
+            .setDescription(`Owner role set to ${role}`)
+        ]
+      });
+    }
+    else if (subCommand === "adminrole") {
+      // Only server owner can set this
+      if (message.author.id !== message.guild.ownerId) {
+        return message.reply({
+          embeds: [
+            new EmbedBuilder()
+              .setColor("#FF0000")
+              .setTitle("❌ Permission Denied")
+              .setDescription("Only the server owner can set the admin role.")
+          ]
+        });
+      }
+
+      const role = message.mentions.roles.first();
+      if (!role) {
+        return message.reply("Please mention a role to set as the admin role.");
+      }
+
+      guildSettings.adminRoleId = role.id;
+      saveServerSettings();
+
+      message.reply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor("#00FF00")
+            .setTitle("✅ Role Set")
+            .setDescription(`Admin role set to ${role}`)
+        ]
+      });
+    }
+    else if (subCommand === "modrole") {
+      // Owner or admin can set this
+      const hasOwnerRole = guildSettings.ownerRoleId && message.member.roles.cache.has(guildSettings.ownerRoleId);
+      const hasAdminRole = guildSettings.adminRoleId && message.member.roles.cache.has(guildSettings.adminRoleId);
+      
+      if (message.author.id !== message.guild.ownerId && !hasOwnerRole && !hasAdminRole) {
+        return message.reply({
+          embeds: [
+            new EmbedBuilder()
+              .setColor("#FF0000")
+              .setTitle("❌ Permission Denied")
+              .setDescription("Only owners and admins can set the moderator role.")
+          ]
+        });
+      }
+
+      const role = message.mentions.roles.first();
+      if (!role) {
+        return message.reply("Please mention a role to set as the moderator role.");
+      }
+
+      guildSettings.modRoleId = role.id;
+      saveServerSettings();
+
+      message.reply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor("#00FF00")
+            .setTitle("✅ Role Set")
+            .setDescription(`Moderator role set to ${role}`)
+        ]
+      });
+    }
+    else if (subCommand === "memberrole") {
+      // Owner or admin can set this
+      const hasOwnerRole = guildSettings.ownerRoleId && message.member.roles.cache.has(guildSettings.ownerRoleId);
+      const hasAdminRole = guildSettings.adminRoleId && message.member.roles.cache.has(guildSettings.adminRoleId);
+      
+      if (message.author.id !== message.guild.ownerId && !hasOwnerRole && !hasAdminRole) {
+        return message.reply({
+          embeds: [
+            new EmbedBuilder()
+              .setColor("#FF0000")
+              .setTitle("❌ Permission Denied")
+              .setDescription("Only owners and admins can set the member role.")
+          ]
+        });
+      }
+
+      const role = message.mentions.roles.first();
+      if (!role) {
+        return message.reply("Please mention a role to set as the member role.");
+      }
+
+      guildSettings.memberRoleId = role.id;
+      saveServerSettings();
+
+      message.reply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor("#00FF00")
+            .setTitle("✅ Role Set")
+            .setDescription(`Member role set to ${role}`)
+        ]
+      });
+    }
     else {
       // Show help message for !set command
       const setHelpEmbed = new EmbedBuilder()
@@ -1839,12 +2005,10 @@ client.on("messageCreate", async (message) => {
         .setTitle("!set Command Help")
         .setDescription("Configure server settings with the following options:")
         .addFields(
-          { name: "!set allmemberschannel #channel", value: "Set the total members count channel" },
-          { name: "!set memberschannel #channel", value: "Set the human members count channel" },
-          { name: "!set botschannel #channel", value: "Set the bot members count channel" },
-          { name: "!set welcomechannel #channel", value: "Set the welcome messages channel" }
+          { name: "Channel Settings", value: "!set allmemberschannel #channel - Set total members count channel\n!set memberschannel #channel - Set human members count channel\n!set botschannel #channel - Set bot members count channel\n!set welcomechannel #channel - Set welcome messages channel" },
+          { name: "Role Settings", value: "!set ownerrole @role - Set owner role (Server Owner only)\n!set adminrole @role - Set admin role (Server Owner only)\n!set modrole @role - Set moderator role (Owner/Admin only)\n!set memberrole @role - Set member role (Owner/Admin only)" }
         )
-        .setFooter({ text: "Only administrators can use these commands" });
+        .setFooter({ text: "Role permissions determine who can use specific commands" });
 
       message.channel.send({ embeds: [setHelpEmbed] });
     }
@@ -1895,8 +2059,8 @@ client.on("messageCreate", async (message) => {
 
     // Create the reaction roles panel
     const rolesEmbed = new EmbedBuilder()
-      .setColor("#9C59B6")
-      .setTitle("🐠 Aquarium Community Roles")
+      .setColor("#FF4500")
+      .setTitle("🔥 Flamin' Hot Games Community Roles")
       .setDescription("React to the buttons below to get notification roles:")
       .addFields(
         {
@@ -1906,7 +2070,7 @@ client.on("messageCreate", async (message) => {
         },
         {
           name: "🎁 Giveaway Ping",
-          value: "Get notified when we host aquarium-themed giveaways and events",
+          value: "Get notified when we host spicy gaming giveaways and events",
           inline: false,
         },
       )
@@ -2028,20 +2192,20 @@ client.on("interactionCreate", async (interaction) => {
 async function setupRolesChannel(guild, roles) {
   const categories = [
     {
-      name: "🏆 CLAN ZONE 🏆",
+      name: "🏆 VIP GAMING ZONE 🏆",
       channels: [
-        { name: "💬┃clan-chat", type: ChannelType.GuildText },
-        { name: "🎁┃clan-giveaways", type: ChannelType.GuildText },
-        { name: "📝┃clan-vouches", type: ChannelType.GuildText },
-        { name: "📜┃clan-rules", type: ChannelType.GuildText },
-        { name: "🔍┃clan-logs", type: ChannelType.GuildText },
-        { name: "⚔️┃clan-wars", type: ChannelType.GuildText },
-        { name: "🔒┃clan-private", type: ChannelType.GuildText },
-        { name: "🔊┃clan-voice", type: ChannelType.GuildVoice },
+        { name: "💬┃vip-chat", type: ChannelType.GuildText },
+        { name: "🎁┃vip-giveaways", type: ChannelType.GuildText },
+        { name: "📝┃vip-vouches", type: ChannelType.GuildText },
+        { name: "📜┃vip-rules", type: ChannelType.GuildText },
+        { name: "🔍┃vip-logs", type: ChannelType.GuildText },
+        { name: "⚔️┃tournaments", type: ChannelType.GuildText },
+        { name: "🔒┃private-gaming", type: ChannelType.GuildText },
+        { name: "🔊┃vip-voice", type: ChannelType.GuildVoice },
       ],
       permissions: [
         {
-          role:roles.owner,
+          role: roles.owner,
           allow: [
             "ViewChannel",
             "SendMessages",
@@ -2054,8 +2218,6 @@ async function setupRolesChannel(guild, roles) {
           allow: ["ViewChannel", "SendMessages", "ManageMessages"],
         },
         { role: roles.moderator, allow: ["ViewChannel", "SendMessages"] },
-        { role: roles.clanOfficer, allow: ["ViewChannel", "SendMessages"] },
-        { role: roles.clanMember, allow: ["ViewChannel", "SendMessages"] },
         { role: roles.member, deny: ["ViewChannel"] },
       ],
     },
@@ -2085,7 +2247,7 @@ async function setupRolesChannel(guild, roles) {
         { name: "📢┃announcements", type: ChannelType.GuildText },
         { name: "👋┃welcome", type: ChannelType.GuildText },
         { name: "📖┃rules", type: ChannelType.GuildText },
-        { name: "⚡┃join-clan", type: ChannelType.GuildText },
+        { name: "⚡┃join-community", type: ChannelType.GuildText },
         { name: "🔒┃private-server", type: ChannelType.GuildText },
         { name: "👋┃roles", type: ChannelType.GuildText },
       ],
@@ -2211,7 +2373,7 @@ async function setupRolesChannel(guild, roles) {
         { name: "💬 General", type: ChannelType.GuildVoice },
         { name: "🎵 Music", type: ChannelType.GuildVoice },
         { name: "🎲 AFK", type: ChannelType.GuildVoice },
-        { name: "🏆 Clan Wars", type: ChannelType.GuildVoice },
+        { name: "🏆 Tournaments", type: ChannelType.GuildVoice },
       ],
       permissions: [
         {
@@ -2459,9 +2621,9 @@ client.on("interactionCreate", async (interaction) => {
 
       // Send welcome message and ping notifications
       const welcomeEmbed = new EmbedBuilder()
-        .setColor("#00ff00")
-        .setTitle("🐠 Welcome to Your Aquarium Support Ticket")
-        .setDescription("Our aquarium community support team will assist you shortly.\n\n**Tips:**\n• Describe your aquarium building issue or question clearly\n• You can ping other members to add them to the ticket\n• Staff will claim the ticket when available\n• Feel free to share screenshots of your aquarium builds if relevant")
+        .setColor("#FF4500")
+        .setTitle("🔥 Welcome to Your Flamin' Hot Games Support Ticket")
+        .setDescription("Our gaming community support team will assist you shortly.\n\n**Tips:**\n• Describe your gaming issue or question clearly\n• You can ping other members to add them to the ticket\n• Staff will claim the ticket when available\n• Feel free to share screenshots of your gaming moments if relevant")
         .setTimestamp();
 
       await ticketChannel.send({
@@ -2895,6 +3057,11 @@ client.on("interactionCreate", async (interaction) => {
     }
   }
 });
+
+if (!token) {
+  console.error('DISCORD_BOT_TOKEN environment variable is not set!');
+  process.exit(1);
+}
 
 client.login(token);
 
