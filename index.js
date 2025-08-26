@@ -575,7 +575,7 @@ function checkMessageBasedAchievements(userId, guildId, message) {
   userLevels.set(userKey, userData);
 }
 
-const token = "MTQwOTkyNDQ0OTM1NjA5MTQ1Mg.GinUHu.GiG8mkEAe2IO-qOW9HnAC3gcaT6jWUqyaSMsPw";
+const token = "MTQwOTkyNDQ0OTM1NjA5MTQ1Mg.G5dMpD.GJW4XtOC8xhXOYgKzSjN-8pUXSbzSx5YnOjVnQ";
 
 const client = new Client({
   intents: Object.values(GatewayIntentBits),
@@ -840,6 +840,108 @@ client.on("guildMemberAdd", async (member) => {
 client.on("guildMemberRemove", async (member) => {
   updateMemberCountChannels();
 });
+
+// Handle reactions for vote updates
+client.on("messageReactionAdd", async (reaction, user) => {
+  if (user.bot) return;
+  
+  // Handle vote reactions
+  const reactions = ['1️⃣', '2️⃣', '3️⃣', '4️⃣'];
+  if (reactions.includes(reaction.emoji.name)) {
+    await updateVoteMessage(reaction, user, 'add');
+  }
+});
+
+client.on("messageReactionRemove", async (reaction, user) => {
+  if (user.bot) return;
+  
+  // Handle vote reactions
+  const reactions = ['1️⃣', '2️⃣', '3️⃣', '4️⃣'];
+  if (reactions.includes(reaction.emoji.name)) {
+    await updateVoteMessage(reaction, user, 'remove');
+  }
+});
+
+async function updateVoteMessage(reaction, user, action) {
+  try {
+    // Find the vote that corresponds to this message
+    let voteData = null;
+    let voteId = null;
+    
+    for (const [id, vote] of votes.entries()) {
+      if (vote.messageId === reaction.message.id && vote.active) {
+        voteData = vote;
+        voteId = id;
+        break;
+      }
+    }
+    
+    if (!voteData) return;
+    
+    const reactionIndex = ['1️⃣', '2️⃣', '3️⃣', '4️⃣'].indexOf(reaction.emoji.name);
+    if (reactionIndex === -1 || reactionIndex >= voteData.options.length) return;
+    
+    // Update vote data
+    if (action === 'add') {
+      // Check if user already voted
+      if (voteData.votes.has(user.id)) {
+        // Remove their old vote
+        const oldChoice = voteData.votes.get(user.id);
+        // Remove reaction from old choice if different
+        if (oldChoice !== reactionIndex) {
+          try {
+            const oldReaction = reaction.message.reactions.cache.get(['1️⃣', '2️⃣', '3️⃣', '4️⃣'][oldChoice]);
+            if (oldReaction) {
+              await oldReaction.users.remove(user.id);
+            }
+          } catch (error) {
+            console.error('Error removing old reaction:', error);
+          }
+        }
+      }
+      voteData.votes.set(user.id, reactionIndex);
+    } else if (action === 'remove') {
+      // Only remove if this was their actual vote
+      if (voteData.votes.get(user.id) === reactionIndex) {
+        voteData.votes.delete(user.id);
+      }
+    }
+    
+    votes.set(voteId, voteData);
+    saveVotes();
+    
+    // Update the message with new vote counts
+    const totalVotes = voteData.votes.size;
+    const results = new Array(voteData.options.length).fill(0);
+    
+    for (const vote of voteData.votes.values()) {
+      results[vote]++;
+    }
+    
+    const updatedFields = voteData.options.map((option, index) => {
+      const voteCount = results[index];
+      const percentage = totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0;
+      return {
+        name: `${index + 1}️⃣ ${option}`,
+        value: `${voteCount} votes (${percentage}%)`,
+        inline: true
+      };
+    });
+    
+    const updatedEmbed = new EmbedBuilder()
+      .setColor('#0099ff')
+      .setTitle(`📊 Poll #${voteId}`)
+      .setDescription(voteData.question)
+      .addFields(updatedFields)
+      .setFooter({ text: `Use !vote participate ${voteId} to vote | Created by ${reaction.message.guild.members.cache.get(voteData.createdBy)?.user.tag || 'Unknown'}` })
+      .setTimestamp();
+    
+    await reaction.message.edit({ embeds: [updatedEmbed] });
+    
+  } catch (error) {
+    console.error('Error updating vote message:', error);
+  }
+}
 
 
 // Enhanced server logging system
@@ -1418,52 +1520,55 @@ client.on("messageCreate", async (message) => {
 
     const helpEmbed = new EmbedBuilder()
       .setColor("#FF4500")
-      .setTitle("🔥 Flamin' Hot Games Bot Commands")
-      .setDescription("Here are all available commands for managing your community:")
+      .setTitle("🔥 Flamin' Hot Games Bot - Command Help")
+      .setDescription("**Welcome to your ultimate Discord community management bot!**\n\nUse the commands below to manage your server, engage your community, and track activity.")
       .addFields(
         {
-          name: "🛠️ Admin Commands",
-          value: "!purge <number> - Delete messages (Staff+)\n!editpanel \"Title\" Description - Edit support panel (Admin only)\n!lock - Lock the current channel (Staff+)\n!unlock - Unlock the current channel (Staff+)\n!deletealltickets - Delete all tickets and reset counter (Admin only)\n!toggleautomod - Toggle auto-moderation (Admin only)\n!togglebadwords - Toggle bad words filter (Admin only)\n!togglecaps - Toggle caps filter (Admin only)\n!togglespam - Toggle spam filter (Admin only)",
+          name: "ℹ️ **General & Utility**",
+          value: "```\n!help          - Show this help menu\n!ping          - Check bot response time\n!rules         - Display server rules\n!avatar [@user] - Show user avatar\n!servericon    - Show server icon```",
           inline: false,
         },
         {
-          name: "🔧 Server Settings",
-          value: "!set allmemberschannel #channel - Set total members count channel (Admin only)\n!set memberschannel #channel - Set human members count channel (Admin only)\n!set botschannel #channel - Set bot members count channel (Admin only)\n!set welcomechannel #channel - Set welcome messages channel (Admin only)\n!set logschannel #channel - Set server logs channel (Admin only)\n!set ownerrole @role - Set the owner role (Owner only)\n!set adminrole @role - Set the admin role (Owner only)\n!set modrole @role - Set the moderator role (Admin+)\n!set memberrole @role - Set the member role (Admin+)",
+          name: "🔨 **Moderation Commands** (Staff Only)",
+          value: "```\n!kick @user [reason]      - Kick a member\n!ban @user [reason]       - Ban a member\n!unban <userID> [reason]  - Unban a member\n!warn @user [reason]      - Warn a member\n!mute @user <time> [reason] - Timeout member\n!unmute @user             - Remove timeout\n!purge <1-100>            - Delete messages\n!lock / !unlock           - Lock/unlock channel```",
           inline: false,
         },
         {
-          name: "🎮 Community Features",
-          value: "!rr - Create a reaction roles panel for notification roles (Admin only)\n!setlvlchannel #channel - Set level up notification channel (Admin only)\n!vote create \"Question\" \"Option1\" \"Option2\" - Create a poll\n!vote end <vote_id> - End a poll\n!vote participate <vote_id> - Participate in a poll\n!invite tracker - Show invite tracker commands",
+          name: "🛠️ **Administration** (Admin Only)",
+          value: "```\n!editpanel \"Title\" Description - Edit support panel\n!deletealltickets            - Delete all tickets\n!toggleautomod               - Toggle auto-moderation\n!togglebadwords              - Toggle profanity filter\n!togglecaps                  - Toggle caps filter\n!togglespam                  - Toggle spam protection```",
           inline: false,
         },
         {
-          name: "🔨 Moderation",
-          value: "!kick @user [reason] - Kick a member (Staff+)\n!ban @user [reason] - Ban a member (Staff+)\n!unban userID [reason] - Unban a member (Staff+)\n!warn @user [reason] - Warn a member (Staff+)\n!mute @user [time][m/h/d] [reason] - Timeout a member (Staff+)\n!unmute @user - Remove timeout from a member (Staff+)",
+          name: "⚙️ **Server Configuration** (Admin Only)",
+          value: "```\n!set allmemberschannel #ch - Total member count\n!set memberschannel #ch    - Human member count\n!set botschannel #ch       - Bot member count\n!set welcomechannel #ch    - Welcome messages\n!set logschannel #ch       - Server logs\n!set ownerrole @role       - Owner role (Owner only)\n!set adminrole @role       - Admin role (Owner only)\n!set modrole @role         - Moderator role\n!set memberrole @role      - Default member role```",
           inline: false,
         },
         {
-          name: "🔥 Leveling System",
-          value: "!lvl - View your level and XP\n!lvl @user - View another user's level\n!leaderboard - View top users\n!givexp @user amount - Give XP to a user (Owner only)\n!resetlevel @user - Reset a user's level (Owner only)\n!achievements [@user] - View achievements",
+          name: "🔥 **Leveling & XP System**",
+          value: "```\n!lvl [@user]              - View level & XP stats\n!leaderboard              - Top server members\n!achievements [@user]     - View achievements\n!allachievements          - All available achievements\n!givexp @user <amount>    - Give XP (Owner only)\n!resetlevel @user         - Reset level (Owner only)\n!setlvlchannel #ch        - Set level notifications```",
           inline: false,
         },
         {
-          name: "📊 Voting System",
-          value: "!vote create \"Question\" \"Option1\" \"Option2\" - Create a poll\n!vote participate <vote_id> - Vote in a poll\n!vote end <vote_id> - End a poll\n!vote - Show voting help",
+          name: "📊 **Voting & Polls**",
+          value: "```\n!vote create \"Question\" \"Option1\" \"Option2\" - Create poll\n!vote participate <ID>     - Vote in a poll\n!vote end <ID>             - End a poll\n!vote                      - Show voting help```",
           inline: false,
         },
         {
-          name: "📨 Invite Tracking",
-          value: "!invite stats [@user] - View invite statistics\n!invite leaderboard - View top inviters\n!invite tracker - Show invite tracker commands",
+          name: "📨 **Invite Tracking**",
+          value: "```\n!invite stats [@user]     - View invite statistics\n!invite leaderboard       - Top server inviters\n!invite tracker           - Tracker help & info```",
           inline: false,
         },
         {
-          name: "ℹ️ General Commands",
-          value: "!ping - Check bot latency\n!rules - Display community rules\n!help - Show this message",
+          name: "🎮 **Community Features**",
+          value: "```\n!rr                       - Setup reaction roles (Admin)\n!poll <question>          - Quick poll with 👍/👎```",
           inline: false,
-        },
+        }
       )
       .setThumbnail(client.user.displayAvatarURL())
-      .setFooter({ text: "Tip: All commands start with !" })
+      .setFooter({ 
+        text: "💡 Tip: All commands start with ! | For detailed help on a specific feature, use the individual help commands",
+        iconURL: message.guild.iconURL()
+      })
       .setTimestamp();
 
     message.channel.send({ embeds: [helpEmbed] });
@@ -2571,6 +2676,55 @@ client.on("messageCreate", async (message) => {
       .setThumbnail(target.displayAvatarURL({ dynamic: true }))
       .setTimestamp();
 
+    message.channel.send({ embeds: [embed] });
+  }
+
+  if (command === "allachievements" || command === "achievementslist") {
+    const achievementCategories = {
+      "🚀 Getting Started": ['first_message', 'early_bird', 'night_owl', 'weekend_warrior'],
+      "⭐ Level Milestones": ['level_5', 'level_10', 'level_15', 'level_20', 'level_25', 'level_30', 'level_40', 'level_50', 'level_75', 'level_100'],
+      "💬 Activity": ['chatterer', 'conversationalist', 'chatterbox', 'social_butterfly', 'community_pillar'],
+      "📅 Daily Streaks": ['daily_visitor', 'weekly_regular', 'monthly_member', 'loyal_member'],
+      "👥 Social & Invites": ['inviter', 'recruiter', 'ambassador', 'growth_catalyst'],
+      "😄 Reactions & Fun": ['reactor', 'emoji_enthusiast', 'mention_master', 'meme_lord'],
+      "🗳️ Voting & Polls": ['voter', 'poll_creator', 'democratic_spirit', 'poll_master', 'voice_of_people'],
+      "⏰ Time-Based": ['speed_demon', 'marathon_chatter', 'persistent', 'time_traveler'],
+      "🎯 Special": ['lucky_number', 'palindrome_master', 'question_asker', 'exclamation_enthusiast'],
+      "🗺️ Exploration": ['channel_explorer', 'omni_present', 'channel_hopper'],
+      "🎮 Gaming": ['gamer', 'strategy_master', 'competitive_spirit'],
+      "🤝 Helper": ['helpful_soul', 'problem_solver', 'mentor'],
+      "📸 Content": ['media_sharer', 'link_provider'],
+      "✨ Positivity": ['positive_vibes', 'encourager', 'complimenter'],
+      "🎉 Milestones": ['first_week', 'first_month', 'anniversary'],
+      "🦄 Rare": ['unicorn', 'phoenix'],
+      "🏛️ Community": ['event_participant', 'feedback_provider', 'suggestion_maker']
+    };
+
+    const embed = new EmbedBuilder()
+      .setColor('#FFD700')
+      .setTitle('🏆 All Available Achievements')
+      .setDescription(`Here are all ${Object.keys(achievementList).length} achievements you can unlock:`)
+      .setTimestamp();
+
+    for (const [category, achievementIds] of Object.entries(achievementCategories)) {
+      const categoryAchievements = achievementIds
+        .filter(id => achievementList[id])
+        .map(id => {
+          const achievement = achievementList[id];
+          return `${achievement.emoji} **${achievement.name}** - ${achievement.description} (+${achievement.xp} XP)`;
+        })
+        .join('\n');
+
+      if (categoryAchievements) {
+        embed.addFields({
+          name: category,
+          value: categoryAchievements.length > 1024 ? categoryAchievements.substring(0, 1021) + "..." : categoryAchievements,
+          inline: false
+        });
+      }
+    }
+
+    embed.setFooter({ text: "Use !achievements [@user] to see someone's unlocked achievements" });
     message.channel.send({ embeds: [embed] });
   }
 
