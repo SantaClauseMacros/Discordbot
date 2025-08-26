@@ -108,6 +108,152 @@ try {
   fs.writeFileSync('tickets.json', JSON.stringify(Object.fromEntries(tickets)));
 }
 
+// Voting system
+let votes = new Map();
+let voteCounter = 0;
+try {
+  const votesData = JSON.parse(fs.readFileSync('votes.json', 'utf8'));
+  votes = new Map(Object.entries(votesData.votes || {}));
+  voteCounter = votesData.counter || 0;
+} catch (err) {
+  fs.writeFileSync('votes.json', JSON.stringify({ votes: {}, counter: 0 }));
+}
+
+function saveVotes() {
+  fs.writeFileSync('votes.json', JSON.stringify({ 
+    votes: Object.fromEntries(votes), 
+    counter: voteCounter 
+  }));
+}
+
+// Invite tracking
+let inviteTracker = new Map();
+try {
+  const inviteData = JSON.parse(fs.readFileSync('invites.json', 'utf8'));
+  inviteTracker = new Map(Object.entries(inviteData));
+} catch (err) {
+  fs.writeFileSync('invites.json', JSON.stringify({}));
+}
+
+function saveInvites() {
+  fs.writeFileSync('invites.json', JSON.stringify(Object.fromEntries(inviteTracker)));
+}
+
+// Achievements system
+let achievements = new Map();
+try {
+  const achievementData = JSON.parse(fs.readFileSync('achievements.json', 'utf8'));
+  achievements = new Map(Object.entries(achievementData));
+} catch (err) {
+  fs.writeFileSync('achievements.json', JSON.stringify({}));
+}
+
+function saveAchievements() {
+  fs.writeFileSync('achievements.json', JSON.stringify(Object.fromEntries(achievements)));
+}
+
+const achievementList = {
+  // First steps and early achievements
+  'first_message': { name: 'First Steps', description: 'Send your first message', emoji: '👋', xp: 50 },
+  'early_bird': { name: 'Early Bird', description: 'Send a message before 8 AM', emoji: '🌅', xp: 75 },
+  'night_owl': { name: 'Night Owl', description: 'Send a message after 11 PM', emoji: '🦉', xp: 75 },
+  'weekend_warrior': { name: 'Weekend Warrior', description: 'Be active on weekends', emoji: '⚔️', xp: 100 },
+  
+  // Level achievements
+  'level_5': { name: 'Getting Started', description: 'Reach level 5', emoji: '🌟', xp: 100 },
+  'level_10': { name: 'Active Member', description: 'Reach level 10', emoji: '🔥', xp: 200 },
+  'level_15': { name: 'Regular', description: 'Reach level 15', emoji: '⭐', xp: 300 },
+  'level_20': { name: 'Dedicated', description: 'Reach level 20', emoji: '💎', xp: 400 },
+  'level_25': { name: 'Veteran', description: 'Reach level 25', emoji: '👑', xp: 500 },
+  'level_30': { name: 'Elite', description: 'Reach level 30', emoji: '🏆', xp: 600 },
+  'level_40': { name: 'Master', description: 'Reach level 40', emoji: '🎖️', xp: 800 },
+  'level_50': { name: 'Legend', description: 'Reach level 50', emoji: '🌟', xp: 1000 },
+  'level_75': { name: 'Mythical', description: 'Reach level 75', emoji: '🔮', xp: 1500 },
+  'level_100': { name: 'Godlike', description: 'Reach level 100', emoji: '⚡', xp: 2000 },
+  
+  // Activity achievements
+  'chatterer': { name: 'Chatterer', description: 'Send 100 messages', emoji: '💬', xp: 150 },
+  'conversationalist': { name: 'Conversationalist', description: 'Send 500 messages', emoji: '🗣️', xp: 250 },
+  'chatterbox': { name: 'Chatterbox', description: 'Send 1000 messages', emoji: '📢', xp: 400 },
+  'social_butterfly': { name: 'Social Butterfly', description: 'Send 2500 messages', emoji: '🦋', xp: 600 },
+  'community_pillar': { name: 'Community Pillar', description: 'Send 5000 messages', emoji: '🏛️', xp: 1000 },
+  
+  // Daily activity
+  'daily_visitor': { name: 'Daily Visitor', description: 'Be active for 7 consecutive days', emoji: '📅', xp: 200 },
+  'weekly_regular': { name: 'Weekly Regular', description: 'Be active for 30 consecutive days', emoji: '🗓️', xp: 500 },
+  'monthly_member': { name: 'Monthly Member', description: 'Be active for 90 consecutive days', emoji: '📆', xp: 1000 },
+  'loyal_member': { name: 'Loyal Member', description: 'Be active for 365 consecutive days', emoji: '❤️', xp: 2000 },
+  
+  // Social achievements
+  'inviter': { name: 'Inviter', description: 'Invite 5 people to the server', emoji: '📨', xp: 250 },
+  'recruiter': { name: 'Recruiter', description: 'Invite 15 people to the server', emoji: '🎯', xp: 500 },
+  'ambassador': { name: 'Ambassador', description: 'Invite 30 people to the server', emoji: '👨‍💼', xp: 750 },
+  'growth_catalyst': { name: 'Growth Catalyst', description: 'Invite 50 people to the server', emoji: '🚀', xp: 1000 },
+  
+  // Reaction and interaction achievements
+  'reactor': { name: 'Reactor', description: 'React to 50 messages', emoji: '😄', xp: 100 },
+  'emoji_enthusiast': { name: 'Emoji Enthusiast', description: 'Use 100 different emojis', emoji: '😍', xp: 150 },
+  'mention_master': { name: 'Mention Master', description: 'Mention other users 25 times', emoji: '📣', xp: 125 },
+  
+  // Voting achievements
+  'voter': { name: 'Voter', description: 'Participate in your first poll', emoji: '🗳️', xp: 100 },
+  'poll_creator': { name: 'Poll Creator', description: 'Create your first poll', emoji: '📊', xp: 150 },
+  'democratic_spirit': { name: 'Democratic Spirit', description: 'Participate in 10 polls', emoji: '🏛️', xp: 300 },
+  'poll_master': { name: 'Poll Master', description: 'Create 10 polls', emoji: '📈', xp: 400 },
+  'voice_of_people': { name: 'Voice of the People', description: 'Participate in 25 polls', emoji: '📢', xp: 500 },
+  
+  // Time-based achievements
+  'speed_demon': { name: 'Speed Demon', description: 'Send 10 messages in 1 minute', emoji: '💨', xp: 200 },
+  'marathon_chatter': { name: 'Marathon Chatter', description: 'Chat for 3 hours straight', emoji: '🏃‍♂️', xp: 300 },
+  'persistent': { name: 'Persistent', description: 'Send messages 7 days in a row', emoji: '🔄', xp: 250 },
+  
+  // Special achievements
+  'lucky_number': { name: 'Lucky Number', description: 'Send a message with exactly 777 characters', emoji: '🍀', xp: 777 },
+  'palindrome_master': { name: 'Palindrome Master', description: 'Send a palindrome message', emoji: '🔄', xp: 200 },
+  'question_asker': { name: 'Curious Mind', description: 'Ask 25 questions (messages ending with ?)', emoji: '❓', xp: 150 },
+  'exclamation_enthusiast': { name: 'Enthusiastic!', description: 'Send 50 excited messages (ending with !)', emoji: '❗', xp: 125 },
+  
+  // Channel diversity achievements
+  'channel_explorer': { name: 'Channel Explorer', description: 'Send messages in 10 different channels', emoji: '🗺️', xp: 200 },
+  'omni_present': { name: 'Omnipresent', description: 'Send messages in 20 different channels', emoji: '👁️', xp: 350 },
+  'channel_hopper': { name: 'Channel Hopper', description: 'Send messages in 5 channels in one day', emoji: '🦘', xp: 150 },
+  
+  // Gaming achievements
+  'gamer': { name: 'Gamer', description: 'Mention gaming 10 times', emoji: '🎮', xp: 150 },
+  'strategy_master': { name: 'Strategy Master', description: 'Discuss strategy 5 times', emoji: '🧠', xp: 200 },
+  'competitive_spirit': { name: 'Competitive Spirit', description: 'Participate in gaming discussions', emoji: '🏆', xp: 175 },
+  
+  // Helper achievements
+  'helpful_soul': { name: 'Helpful Soul', description: 'Help others 10 times', emoji: '🤝', xp: 250 },
+  'problem_solver': { name: 'Problem Solver', description: 'Solve others\' problems 5 times', emoji: '🔧', xp: 300 },
+  'mentor': { name: 'Mentor', description: 'Guide new members', emoji: '👨‍🏫', xp: 400 },
+  
+  // Content achievements
+  'media_sharer': { name: 'Media Sharer', description: 'Share 25 images or videos', emoji: '📸', xp: 200 },
+  'link_provider': { name: 'Link Provider', description: 'Share 50 useful links', emoji: '🔗', xp: 150 },
+  'meme_lord': { name: 'Meme Lord', description: 'Share memes and get reactions', emoji: '😂', xp: 175 },
+  
+  // Special word achievements
+  'positive_vibes': { name: 'Positive Vibes', description: 'Spread positivity 20 times', emoji: '✨', xp: 200 },
+  'encourager': { name: 'Encourager', description: 'Encourage others 15 times', emoji: '💪', xp: 175 },
+  'complimenter': { name: 'Complimenter', description: 'Give compliments 10 times', emoji: '🌟', xp: 150 },
+  
+  // Milestone achievements
+  'first_week': { name: 'First Week Complete', description: 'Complete your first week in the server', emoji: '📅', xp: 150 },
+  'first_month': { name: 'One Month Strong', description: 'Complete your first month in the server', emoji: '🗓️', xp: 300 },
+  'anniversary': { name: 'Anniversary', description: 'Celebrate your 1-year anniversary', emoji: '🎂', xp: 1000 },
+  
+  // Rare achievements
+  'unicorn': { name: 'Unicorn', description: 'Be the 1000th message of the day', emoji: '🦄', xp: 500 },
+  'phoenix': { name: 'Phoenix', description: 'Return after 30 days of inactivity', emoji: '🔥', xp: 400 },
+  'time_traveler': { name: 'Time Traveler', description: 'Send messages in every hour of the day', emoji: '⏰', xp: 600 },
+  
+  // Community achievements
+  'event_participant': { name: 'Event Participant', description: 'Participate in server events', emoji: '🎉', xp: 250 },
+  'feedback_provider': { name: 'Feedback Provider', description: 'Provide constructive feedback', emoji: '💭', xp: 200 },
+  'suggestion_maker': { name: 'Suggestion Maker', description: 'Make helpful suggestions', emoji: '💡', xp: 175 }
+};
+
 function saveTickets() {
   fs.writeFileSync('tickets.json', JSON.stringify(Object.fromEntries(tickets)));
 }
@@ -207,6 +353,11 @@ function addUserXP(userId, guildId, message) {
   // Get current user data or initialize new
   const userData = userLevels.get(userKey) || { xp: 0, level: 1, totalXP: 0, messages: 0 };
 
+  // Check for first message achievement
+  if (userData.messages === 0) {
+    checkAchievement(userId, guildId, 'first_message', message);
+  }
+
   // Add XP
   const xpToAdd = getRandomXP();
   userData.xp += xpToAdd;
@@ -223,9 +374,21 @@ function addUserXP(userId, guildId, message) {
     leveledUp = true;
   }
 
-  // If user leveled up, send level up message
+  // If user leveled up, send level up message and check achievements
   if (leveledUp) {
     userData.level = newLevel;
+
+    // Check level achievements
+    if (newLevel === 5) checkAchievement(userId, guildId, 'level_5', message);
+    if (newLevel === 10) checkAchievement(userId, guildId, 'level_10', message);
+    if (newLevel === 15) checkAchievement(userId, guildId, 'level_15', message);
+    if (newLevel === 20) checkAchievement(userId, guildId, 'level_20', message);
+    if (newLevel === 25) checkAchievement(userId, guildId, 'level_25', message);
+    if (newLevel === 30) checkAchievement(userId, guildId, 'level_30', message);
+    if (newLevel === 40) checkAchievement(userId, guildId, 'level_40', message);
+    if (newLevel === 50) checkAchievement(userId, guildId, 'level_50', message);
+    if (newLevel === 75) checkAchievement(userId, guildId, 'level_75', message);
+    if (newLevel === 100) checkAchievement(userId, guildId, 'level_100', message);
 
     // Get guild settings
     const guildSettings = serverSettings[guildId] || {};
@@ -256,6 +419,160 @@ function addUserXP(userId, guildId, message) {
   // Save updated user data
   userLevels.set(userKey, userData);
   saveLevels();
+  
+  // Check for message-based achievements
+  checkMessageBasedAchievements(userId, guildId, message);
+}
+
+function checkAchievement(userId, guildId, achievementId, message) {
+  const userKey = `${userId}-${guildId}`;
+  const userAchievements = achievements.get(userKey) || [];
+
+  if (!userAchievements.includes(achievementId)) {
+    userAchievements.push(achievementId);
+    achievements.set(userKey, userAchievements);
+    saveAchievements();
+
+    const achievement = achievementList[achievementId];
+    if (achievement) {
+      // Give bonus XP
+      const userData = userLevels.get(userKey) || { xp: 0, level: 1, totalXP: 0, messages: 0 };
+      userData.xp += achievement.xp;
+      userData.totalXP += achievement.xp;
+      userLevels.set(userKey, userData);
+      saveLevels();
+
+      const achievementEmbed = new EmbedBuilder()
+        .setColor('#FFD700')
+        .setTitle('🏆 Achievement Unlocked!')
+        .setDescription(`${message.author} earned: **${achievement.name}**`)
+        .addFields(
+          { name: 'Description', value: achievement.description, inline: true },
+          { name: 'Bonus XP', value: `+${achievement.xp}`, inline: true }
+        )
+        .setTimestamp();
+
+      message.channel.send({ embeds: [achievementEmbed] }).catch(error => {
+        console.error('Error sending achievement message:', error);
+      });
+    }
+  }
+}
+
+// Enhanced achievement checking functions
+function checkMessageBasedAchievements(userId, guildId, message) {
+  const userKey = `${userId}-${guildId}`;
+  const userData = userLevels.get(userKey) || { xp: 0, level: 1, totalXP: 0, messages: 0 };
+  const userAchievements = achievements.get(userKey) || [];
+  
+  const messageContent = message.content.toLowerCase();
+  const messageLength = message.content.length;
+  const currentHour = new Date().getHours();
+  const currentDay = new Date().getDay(); // 0 = Sunday, 6 = Saturday
+  
+  // Time-based achievements
+  if (currentHour < 8 && !userAchievements.includes('early_bird')) {
+    checkAchievement(userId, guildId, 'early_bird', message);
+  }
+  
+  if (currentHour >= 23 && !userAchievements.includes('night_owl')) {
+    checkAchievement(userId, guildId, 'night_owl', message);
+  }
+  
+  if ((currentDay === 0 || currentDay === 6) && !userAchievements.includes('weekend_warrior')) {
+    checkAchievement(userId, guildId, 'weekend_warrior', message);
+  }
+  
+  // Message count achievements
+  if (userData.messages >= 100 && !userAchievements.includes('chatterer')) {
+    checkAchievement(userId, guildId, 'chatterer', message);
+  }
+  
+  if (userData.messages >= 500 && !userAchievements.includes('conversationalist')) {
+    checkAchievement(userId, guildId, 'conversationalist', message);
+  }
+  
+  if (userData.messages >= 1000 && !userAchievements.includes('chatterbox')) {
+    checkAchievement(userId, guildId, 'chatterbox', message);
+  }
+  
+  if (userData.messages >= 2500 && !userAchievements.includes('social_butterfly')) {
+    checkAchievement(userId, guildId, 'social_butterfly', message);
+  }
+  
+  if (userData.messages >= 5000 && !userAchievements.includes('community_pillar')) {
+    checkAchievement(userId, guildId, 'community_pillar', message);
+  }
+  
+  // Special message content achievements
+  if (messageLength === 777 && !userAchievements.includes('lucky_number')) {
+    checkAchievement(userId, guildId, 'lucky_number', message);
+  }
+  
+  // Check for palindrome (simple check for words)
+  const cleanMessage = messageContent.replace(/[^a-z]/g, '');
+  if (cleanMessage.length > 3 && cleanMessage === cleanMessage.split('').reverse().join('') && !userAchievements.includes('palindrome_master')) {
+    checkAchievement(userId, guildId, 'palindrome_master', message);
+  }
+  
+  // Question and exclamation achievements
+  if (message.content.endsWith('?')) {
+    const questionCount = (userData.questionCount || 0) + 1;
+    userData.questionCount = questionCount;
+    userLevels.set(userKey, userData);
+    
+    if (questionCount >= 25 && !userAchievements.includes('question_asker')) {
+      checkAchievement(userId, guildId, 'question_asker', message);
+    }
+  }
+  
+  if (message.content.endsWith('!')) {
+    const exclamationCount = (userData.exclamationCount || 0) + 1;
+    userData.exclamationCount = exclamationCount;
+    userLevels.set(userKey, userData);
+    
+    if (exclamationCount >= 50 && !userAchievements.includes('exclamation_enthusiast')) {
+      checkAchievement(userId, guildId, 'exclamation_enthusiast', message);
+    }
+  }
+  
+  // Gaming-related achievements
+  if (messageContent.includes('gaming') || messageContent.includes('game') || messageContent.includes('play')) {
+    const gamingCount = (userData.gamingCount || 0) + 1;
+    userData.gamingCount = gamingCount;
+    userLevels.set(userKey, userData);
+    
+    if (gamingCount >= 10 && !userAchievements.includes('gamer')) {
+      checkAchievement(userId, guildId, 'gamer', message);
+    }
+  }
+  
+  // Positive vibes achievements
+  const positiveWords = ['thanks', 'thank you', 'awesome', 'amazing', 'great', 'wonderful', 'fantastic', 'good job', 'well done', 'congratulations', 'congrats'];
+  if (positiveWords.some(word => messageContent.includes(word))) {
+    const positiveCount = (userData.positiveCount || 0) + 1;
+    userData.positiveCount = positiveCount;
+    userLevels.set(userKey, userData);
+    
+    if (positiveCount >= 20 && !userAchievements.includes('positive_vibes')) {
+      checkAchievement(userId, guildId, 'positive_vibes', message);
+    }
+  }
+  
+  // Channel diversity tracking
+  if (!userData.channelsUsed) userData.channelsUsed = new Set();
+  userData.channelsUsed.add(message.channel.id);
+  
+  const channelCount = userData.channelsUsed.size;
+  if (channelCount >= 10 && !userAchievements.includes('channel_explorer')) {
+    checkAchievement(userId, guildId, 'channel_explorer', message);
+  }
+  
+  if (channelCount >= 20 && !userAchievements.includes('omni_present')) {
+    checkAchievement(userId, guildId, 'omni_present', message);
+  }
+  
+  userLevels.set(userKey, userData);
 }
 
 const token = "MTQwOTkyNDQ0OTM1NjA5MTQ1Mg.GinUHu.GiG8mkEAe2IO-qOW9HnAC3gcaT6jWUqyaSMsPw";
@@ -292,6 +609,24 @@ client.once("ready", async () => {
   console.log(`Logged in as ${client.user.tag}`);
   console.log(`Serving ${client.guilds.cache.size} servers`);
   console.log(`Watching ${client.users.cache.size} users`);
+
+  // Cache invites for tracking
+  for (const guild of client.guilds.cache.values()) {
+    try {
+      const guildInvites = await guild.invites.fetch();
+      const inviteMap = new Map();
+      guildInvites.forEach(invite => {
+        inviteMap.set(invite.code, {
+          uses: invite.uses,
+          inviterId: invite.inviter?.id
+        });
+      });
+      inviteTracker.set(guild.id, inviteMap);
+    } catch (error) {
+      console.error(`Error caching invites for ${guild.name}:`, error);
+    }
+  }
+  saveInvites();
 
   // Verify existing tickets
   for (const [channelName, ticketData] of tickets.entries()) {
@@ -389,6 +724,59 @@ async function updateMemberCountChannels() {
 
 client.on("guildMemberAdd", async (member) => {
   try {
+    // Track invites
+    const newInvites = await member.guild.invites.fetch();
+    const oldInvites = inviteTracker.get(member.guild.id) || new Map();
+    
+    let inviterData = null;
+    for (const [code, invite] of newInvites) {
+      const oldInvite = oldInvites.get(code);
+      if (oldInvite && invite.uses > oldInvite.uses) {
+        inviterData = {
+          code: code,
+          inviterId: invite.inviter.id,
+          inviterTag: invite.inviter.tag
+        };
+        
+        // Update invite count for inviter
+        const inviterKey = `${invite.inviter.id}-${member.guild.id}`;
+        const inviterAchievements = achievements.get(inviterKey) || [];
+        
+        // Count total invites for this user
+        let totalInvites = 0;
+        for (const [inviteCode, inviteData] of newInvites) {
+          if (inviteData.inviter?.id === invite.inviter.id) {
+            totalInvites += inviteData.uses;
+          }
+        }
+        
+        // Check for inviter achievement
+        if (totalInvites >= 5 && !inviterAchievements.includes('inviter')) {
+          const fakeMessage = {
+            author: invite.inviter,
+            channel: member.guild.channels.cache.find(c => c.type === ChannelType.GuildText),
+            guild: member.guild
+          };
+          if (fakeMessage.channel) {
+            checkAchievement(invite.inviter.id, member.guild.id, 'inviter', fakeMessage);
+          }
+        }
+        
+        break;
+      }
+    }
+    
+    // Update cached invites
+    const inviteMap = new Map();
+    newInvites.forEach(invite => {
+      inviteMap.set(invite.code, {
+        uses: invite.uses,
+        inviterId: invite.inviter?.id
+      });
+    });
+    inviteTracker.set(member.guild.id, inviteMap);
+    saveInvites();
+
     // Get guild settings
     const guildSettings = serverSettings[member.guild.id] || {};
 
@@ -409,6 +797,14 @@ client.on("guildMemberAdd", async (member) => {
         .setFooter({
           text: `We now have ${member.guild.memberCount} members!`,
         });
+
+      if (inviterData) {
+        welcomeEmbed.addFields({
+          name: "Invited by",
+          value: `<@${inviterData.inviterId}>`,
+          inline: true
+        });
+      }
 
       welcomeChannel.send({ embeds: [welcomeEmbed] });
     }
@@ -1047,7 +1443,17 @@ client.on("messageCreate", async (message) => {
         },
         {
           name: "🔥 Leveling System",
-          value: "!lvl - View your level and XP\n!lvl @user - View another user's level\n!leaderboard - View top users\n!givexp @user amount - Give XP to a user (Owner only)\n!resetlevel @user - Reset a user's level (Owner only)",
+          value: "!lvl - View your level and XP\n!lvl @user - View another user's level\n!leaderboard - View top users\n!givexp @user amount - Give XP to a user (Owner only)\n!resetlevel @user - Reset a user's level (Owner only)\n!achievements [@user] - View achievements",
+          inline: false,
+        },
+        {
+          name: "📊 Voting System",
+          value: "!vote create \"Question\" \"Option1\" \"Option2\" - Create a poll\n!vote participate <vote_id> - Vote in a poll\n!vote end <vote_id> - End a poll\n!vote - Show voting help",
+          inline: false,
+        },
+        {
+          name: "📨 Invite Tracking",
+          value: "!invite stats [@user] - View invite statistics\n!invite leaderboard - View top inviters\n!invite tracker - Show invite tracker commands",
           inline: false,
         },
         {
@@ -1919,6 +2325,372 @@ client.on("messageCreate", async (message) => {
       .setDescription(`Reset ${target}'s level back to 1!`);
 
     message.channel.send({ embeds: [embed] });
+  }
+
+  if (command === "vote") {
+    const subCommand = args[0]?.toLowerCase();
+
+    if (subCommand === "create") {
+      if (!message.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
+        return message.reply("You need Manage Messages permission to create polls.");
+      }
+
+      // Parse the command arguments
+      const content = message.content.slice(prefix.length + 5).trim(); // Remove "!vote"
+      const matches = content.match(/create\s+"([^"]+)"\s+"([^"]+)"\s+"([^"]+)"(?:\s+"([^"]+)")?(?:\s+"([^"]+)")?/);
+
+      if (!matches) {
+        return message.reply('Usage: !vote create "Question" "Option1" "Option2" ["Option3"] ["Option4"]');
+      }
+
+      const question = matches[1];
+      const options = [matches[2], matches[3]];
+      if (matches[4]) options.push(matches[4]);
+      if (matches[5]) options.push(matches[5]);
+
+      const voteId = ++voteCounter;
+      const voteData = {
+        id: voteId,
+        question: question,
+        options: options,
+        votes: new Map(),
+        createdBy: message.author.id,
+        active: true,
+        channelId: message.channel.id
+      };
+
+      votes.set(voteId.toString(), voteData);
+      saveVotes();
+      
+      // Check poll creation achievements
+      const userKey = `${message.author.id}-${message.guild.id}`;
+      const userData = userLevels.get(userKey) || { xp: 0, level: 1, totalXP: 0, messages: 0 };
+      const userAchievements = achievements.get(userKey) || [];
+      
+      // First poll creation
+      if (!userAchievements.includes('poll_creator')) {
+        checkAchievement(message.author.id, message.guild.id, 'poll_creator', message);
+      }
+      
+      // Track polls created
+      const pollsCreated = (userData.pollsCreated || 0) + 1;
+      userData.pollsCreated = pollsCreated;
+      userLevels.set(userKey, userData);
+      saveLevels();
+      
+      // Check poll creation milestones
+      if (pollsCreated >= 10 && !userAchievements.includes('poll_master')) {
+        checkAchievement(message.author.id, message.guild.id, 'poll_master', message);
+      }
+
+      const voteEmbed = new EmbedBuilder()
+        .setColor('#0099ff')
+        .setTitle(`📊 Poll #${voteId}`)
+        .setDescription(question)
+        .addFields(
+          options.map((option, index) => ({
+            name: `${index + 1}️⃣ ${option}`,
+            value: '0 votes (0%)',
+            inline: true
+          }))
+        )
+        .setFooter({ text: `Use !vote participate ${voteId} to vote | Created by ${message.author.tag}` })
+        .setTimestamp();
+
+      const pollMessage = await message.channel.send({ embeds: [voteEmbed] });
+      
+      // Add reactions
+      const reactions = ['1️⃣', '2️⃣', '3️⃣', '4️⃣'];
+      for (let i = 0; i < options.length; i++) {
+        await pollMessage.react(reactions[i]);
+      }
+
+      voteData.messageId = pollMessage.id;
+      votes.set(voteId.toString(), voteData);
+      saveVotes();
+
+    } else if (subCommand === "participate") {
+      const voteId = args[1];
+      if (!voteId) {
+        return message.reply("Please specify a vote ID. Usage: !vote participate <vote_id>");
+      }
+
+      const voteData = votes.get(voteId);
+      if (!voteData || !voteData.active) {
+        return message.reply("Vote not found or no longer active.");
+      }
+
+      // Check if user already voted
+      if (voteData.votes.has(message.author.id)) {
+        return message.reply("You have already voted in this poll!");
+      }
+
+      const optionsText = voteData.options.map((option, index) => `${index + 1}. ${option}`).join('\n');
+
+      const participateEmbed = new EmbedBuilder()
+        .setColor('#0099ff')
+        .setTitle(`Vote in Poll #${voteId}`)
+        .setDescription(`**${voteData.question}**\n\n${optionsText}`)
+        .setFooter({ text: 'Reply with the number of your choice (1-' + voteData.options.length + ')' });
+
+      await message.reply({ embeds: [participateEmbed] });
+
+      const filter = (m) => m.author.id === message.author.id && /^[1-4]$/.test(m.content);
+      const collector = message.channel.createMessageCollector({ filter, time: 30000, max: 1 });
+
+      collector.on('collect', (m) => {
+        const choice = parseInt(m.content) - 1;
+        if (choice >= 0 && choice < voteData.options.length) {
+          voteData.votes.set(message.author.id, choice);
+          votes.set(voteId, voteData);
+          saveVotes();
+          
+          // Check voting achievements
+          const userKey = `${message.author.id}-${message.guild.id}`;
+          const userData = userLevels.get(userKey) || { xp: 0, level: 1, totalXP: 0, messages: 0 };
+          const userAchievements = achievements.get(userKey) || [];
+          
+          // First vote achievement
+          if (!userAchievements.includes('voter')) {
+            checkAchievement(message.author.id, message.guild.id, 'voter', message);
+          }
+          
+          // Track vote participation
+          const voteCount = (userData.votesParticipated || 0) + 1;
+          userData.votesParticipated = voteCount;
+          userLevels.set(userKey, userData);
+          saveLevels();
+          
+          // Check vote participation milestones
+          if (voteCount >= 10 && !userAchievements.includes('democratic_spirit')) {
+            checkAchievement(message.author.id, message.guild.id, 'democratic_spirit', message);
+          }
+          
+          if (voteCount >= 25 && !userAchievements.includes('voice_of_people')) {
+            checkAchievement(message.author.id, message.guild.id, 'voice_of_people', message);
+          }
+
+          m.reply(`✅ Your vote for "${voteData.options[choice]}" has been recorded!`);
+        } else {
+          m.reply("Invalid choice!");
+        }
+      });
+
+      collector.on('end', (collected) => {
+        if (collected.size === 0) {
+          message.followUp("❌ Vote timed out.");
+        }
+      });
+
+    } else if (subCommand === "end") {
+      const voteId = args[1];
+      if (!voteId) {
+        return message.reply("Please specify a vote ID. Usage: !vote end <vote_id>");
+      }
+
+      const voteData = votes.get(voteId);
+      if (!voteData) {
+        return message.reply("Vote not found.");
+      }
+
+      if (voteData.createdBy !== message.author.id && !message.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
+        return message.reply("You can only end votes you created or you need Manage Messages permission.");
+      }
+
+      voteData.active = false;
+      votes.set(voteId, voteData);
+      saveVotes();
+
+      // Calculate results
+      const totalVotes = voteData.votes.size;
+      const results = new Array(voteData.options.length).fill(0);
+      
+      for (const vote of voteData.votes.values()) {
+        results[vote]++;
+      }
+
+      const resultFields = voteData.options.map((option, index) => {
+        const voteCount = results[index];
+        const percentage = totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0;
+        return {
+          name: `${index + 1}️⃣ ${option}`,
+          value: `${voteCount} votes (${percentage}%)`,
+          inline: true
+        };
+      });
+
+      const resultsEmbed = new EmbedBuilder()
+        .setColor('#ff9900')
+        .setTitle(`📊 Poll #${voteId} Results`)
+        .setDescription(`**${voteData.question}**\n\nTotal Votes: ${totalVotes}`)
+        .addFields(resultFields)
+        .setFooter({ text: 'Poll ended' })
+        .setTimestamp();
+
+      message.channel.send({ embeds: [resultsEmbed] });
+
+    } else {
+      const voteHelpEmbed = new EmbedBuilder()
+        .setColor('#0099ff')
+        .setTitle('📊 Voting System Help')
+        .setDescription('Available voting commands:')
+        .addFields(
+          { name: 'Create Poll', value: '!vote create "Question" "Option1" "Option2" ["Option3"] ["Option4"]', inline: false },
+          { name: 'Participate', value: '!vote participate <vote_id>', inline: false },
+          { name: 'End Poll', value: '!vote end <vote_id>', inline: false }
+        )
+        .setFooter({ text: 'Polls support 2-4 options' });
+
+      message.channel.send({ embeds: [voteHelpEmbed] });
+    }
+  }
+
+  if (command === "achievements") {
+    const target = message.mentions.users.first() || message.author;
+    const userKey = `${target.id}-${message.guild.id}`;
+    const userAchievements = achievements.get(userKey) || [];
+
+    if (userAchievements.length === 0) {
+      return message.channel.send(`${target.username} hasn't unlocked any achievements yet!`);
+    }
+
+    const achievementFields = userAchievements.map(achievementId => {
+      const achievement = achievementList[achievementId];
+      return achievement ? {
+        name: `${achievement.emoji} ${achievement.name}`,
+        value: `${achievement.description} (+${achievement.xp} XP)`,
+        inline: true
+      } : null;
+    }).filter(Boolean);
+
+    const embed = new EmbedBuilder()
+      .setColor('#FFD700')
+      .setTitle(`🏆 ${target.username}'s Achievements`)
+      .setDescription(`**${userAchievements.length}/${Object.keys(achievementList).length}** achievements unlocked`)
+      .addFields(achievementFields)
+      .setThumbnail(target.displayAvatarURL({ dynamic: true }))
+      .setTimestamp();
+
+    message.channel.send({ embeds: [embed] });
+  }
+
+  if (command === "invite") {
+    const subCommand = args[0]?.toLowerCase();
+
+    if (subCommand === "tracker") {
+      if (!message.member.permissions.has(PermissionsBitField.Flags.ManageGuild)) {
+        return message.reply("You need Manage Server permission to use invite tracker commands.");
+      }
+
+      const trackerEmbed = new EmbedBuilder()
+        .setColor('#0099ff')
+        .setTitle('📨 Invite Tracker')
+        .setDescription('Invite tracking is automatically enabled! Here are the available commands:')
+        .addFields(
+          { name: '!invite stats', value: 'Show your invite statistics', inline: false },
+          { name: '!invite stats @user', value: 'Show someone else\'s invite statistics', inline: false },
+          { name: '!invite leaderboard', value: 'Show top inviters in the server', inline: false }
+        )
+        .setFooter({ text: 'Invites are automatically tracked when members join' });
+
+      message.channel.send({ embeds: [trackerEmbed] });
+
+    } else if (subCommand === "stats") {
+      const target = message.mentions.users.first() || message.author;
+
+      try {
+        const guildInvites = await message.guild.invites.fetch();
+        let totalInvites = 0;
+        let inviteDetails = [];
+
+        for (const [code, invite] of guildInvites) {
+          if (invite.inviter?.id === target.id) {
+            totalInvites += invite.uses;
+            inviteDetails.push({
+              code: code,
+              uses: invite.uses,
+              channel: invite.channel?.name || 'Unknown'
+            });
+          }
+        }
+
+        const embed = new EmbedBuilder()
+          .setColor('#00ff00')
+          .setTitle(`📊 Invite Stats for ${target.username}`)
+          .setDescription(`**Total Invites:** ${totalInvites}`)
+          .setThumbnail(target.displayAvatarURL({ dynamic: true }))
+          .setTimestamp();
+
+        if (inviteDetails.length > 0) {
+          const detailsText = inviteDetails.map(inv => `• ${inv.code}: ${inv.uses} uses (${inv.channel})`).join('\n');
+          embed.addFields({ name: 'Invite Details', value: detailsText.slice(0, 1024) });
+        }
+
+        message.channel.send({ embeds: [embed] });
+
+      } catch (error) {
+        console.error('Error fetching invite stats:', error);
+        message.reply('Failed to fetch invite statistics.');
+      }
+
+    } else if (subCommand === "leaderboard") {
+      try {
+        const guildInvites = await message.guild.invites.fetch();
+        const inviterStats = new Map();
+
+        for (const [code, invite] of guildInvites) {
+          if (invite.inviter && invite.uses > 0) {
+            const currentCount = inviterStats.get(invite.inviter.id) || 0;
+            inviterStats.set(invite.inviter.id, currentCount + invite.uses);
+          }
+        }
+
+        const sortedInviters = Array.from(inviterStats.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10);
+
+        if (sortedInviters.length === 0) {
+          return message.channel.send('No invite data available yet!');
+        }
+
+        let description = '';
+        for (let i = 0; i < sortedInviters.length; i++) {
+          const [userId, inviteCount] = sortedInviters[i];
+          try {
+            const user = await message.client.users.fetch(userId);
+            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
+            description += `${medal} **${user.username}** - ${inviteCount} invites\n`;
+          } catch (error) {
+            console.error('Error fetching user:', error);
+          }
+        }
+
+        const embed = new EmbedBuilder()
+          .setColor('#FFD700')
+          .setTitle('📨 Top Inviters')
+          .setDescription(description)
+          .setTimestamp();
+
+        message.channel.send({ embeds: [embed] });
+
+      } catch (error) {
+        console.error('Error fetching invite leaderboard:', error);
+        message.reply('Failed to fetch invite leaderboard.');
+      }
+
+    } else {
+      const inviteHelpEmbed = new EmbedBuilder()
+        .setColor('#0099ff')
+        .setTitle('📨 Invite Commands')
+        .setDescription('Available invite commands:')
+        .addFields(
+          { name: '!invite tracker', value: 'Show invite tracker information', inline: false },
+          { name: '!invite stats [@user]', value: 'Show invite statistics', inline: false },
+          { name: '!invite leaderboard', value: 'Show top inviters', inline: false }
+        );
+
+      message.channel.send({ embeds: [inviteHelpEmbed] });
+    }
   }
 
   if (command === "setlvlchannel") {
