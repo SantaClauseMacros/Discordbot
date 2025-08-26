@@ -29,6 +29,20 @@ function saveCounters() {
   fs.writeFileSync('counter.json', JSON.stringify(counters));
 }
 
+// Leveling system data - moved to top to fix reference error
+let userLevels = new Map();
+try {
+  const levelData = JSON.parse(fs.readFileSync('levels.json', 'utf8'));
+  userLevels = new Map(Object.entries(levelData));
+} catch (err) {
+  userLevels = new Map();
+  fs.writeFileSync('levels.json', JSON.stringify({}));
+}
+
+function saveLevels() {
+  fs.writeFileSync('levels.json', JSON.stringify(Object.fromEntries(userLevels)));
+}
+
 
 
 // Bot settings with automod defaults
@@ -44,6 +58,7 @@ let botSettings = {
 try {
   botSettings = JSON.parse(fs.readFileSync('settings.json', 'utf8'));
 } catch (err) {
+  botSettings = {};
   fs.writeFileSync('settings.json', JSON.stringify(botSettings));
 }
 
@@ -62,19 +77,7 @@ db.serialize(() => {
   )`);
 
 
-// Leveling system data
-let userLevels = new Map();
-try {
-  const levelData = JSON.parse(fs.readFileSync('levels.json', 'utf8'));
-  userLevels = new Map(Object.entries(levelData));
-} catch (err) {
-  userLevels = new Map();
-  fs.writeFileSync('levels.json', JSON.stringify({}));
-}
 
-function saveLevels() {
-  fs.writeFileSync('levels.json', JSON.stringify(Object.fromEntries(userLevels)));
-}
 
   db.run(`CREATE TABLE IF NOT EXISTS bans (
     id INTEGER PRIMARY KEY,
@@ -116,34 +119,34 @@ db.get("SELECT MAX(id) as max_id FROM tickets", (err, row) => {
 // Helper function to check if user has required role
 function hasRequiredRole(member, requiredLevel) {
   const guildSettings = serverSettings[member.guild.id] || {};
-  
+
   // Server owner always has all permissions
   if (member.id === member.guild.ownerId) return true;
-  
+
   // Check custom set roles first
   if (requiredLevel === 'owner') {
     return guildSettings.ownerRoleId && member.roles.cache.has(guildSettings.ownerRoleId);
   }
-  
+
   if (requiredLevel === 'admin') {
     const hasOwnerRole = guildSettings.ownerRoleId && member.roles.cache.has(guildSettings.ownerRoleId);
     const hasAdminRole = guildSettings.adminRoleId && member.roles.cache.has(guildSettings.adminRoleId);
     return hasOwnerRole || hasAdminRole;
   }
-  
+
   if (requiredLevel === 'mod') {
     const hasOwnerRole = guildSettings.ownerRoleId && member.roles.cache.has(guildSettings.ownerRoleId);
     const hasAdminRole = guildSettings.adminRoleId && member.roles.cache.has(guildSettings.adminRoleId);
     const hasModRole = guildSettings.modRoleId && member.roles.cache.has(guildSettings.modRoleId);
     return hasOwnerRole || hasAdminRole || hasModRole;
   }
-  
+
   // Fall back to default role names if custom roles aren't set
   const roleNames = [];
   if (requiredLevel === 'owner') roleNames.push('Owner');
   if (requiredLevel === 'admin') roleNames.push('Owner', 'Admin');
   if (requiredLevel === 'mod') roleNames.push('Owner', 'Admin', 'Moderator');
-  
+
   return member.roles.cache.some(role => roleNames.includes(role.name));
 }
 
@@ -235,11 +238,11 @@ function addUserXP(userId, guildId, message) {
     if (levelChannel) {
       const levelUpEmbed = new EmbedBuilder()
         .setColor('#FF4500')
-        .setTitle('🔥 Flamin\' Hot Gamer Level Up!')
-        .setDescription(`Congratulations ${message.author}! Your gaming skills have leveled up to **${newLevel}**! 🎉`)
+        .setTitle('🔥 Level Up!')
+        .setDescription(`Congratulations ${message.author}! You've reached **Level ${newLevel}**! 🎉`)
         .setThumbnail(message.author.displayAvatarURL({ dynamic: true }))
         .addFields(
-          { name: '🏆 New Gamer Level', value: `${newLevel}`, inline: true },
+          { name: '🏆 New Level', value: `${newLevel}`, inline: true },
           { name: '✨ Total Experience', value: `${userData.totalXP}`, inline: true }
         )
         .setTimestamp();
@@ -255,7 +258,7 @@ function addUserXP(userId, guildId, message) {
   saveLevels();
 }
 
-const token = process.env.DISCORD_BOT_TOKEN;
+const token = "MTQwOTkyNDQ0OTM1NjA5MTQ1Mg.GinUHu.GiG8mkEAe2IO-qOW9HnAC3gcaT6jWUqyaSMsPw";
 
 const client = new Client({
   intents: Object.values(GatewayIntentBits),
@@ -399,7 +402,7 @@ client.on("guildMemberAdd", async (member) => {
         .setColor("#FF4500")
         .setTitle("New Member!")
         .setDescription(
-          `Welcome to Flamin' Hot Games, ${member}! Ready to experience some spicy gaming action?`,
+          `Welcome to Flamin' Hot Games, ${member}! We hope you enjoy your stay :)`,
         )
         .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
         .setTimestamp()
@@ -412,13 +415,13 @@ client.on("guildMemberAdd", async (member) => {
 
     // Use custom member role if set, otherwise fall back to default "Member" role
     let memberRole = null;
-    
+
     if (guildSettings.memberRoleId) {
       memberRole = member.guild.roles.cache.get(guildSettings.memberRoleId);
     } else {
       memberRole = member.guild.roles.cache.find((role) => role.name === "Member");
     }
-    
+
     if (memberRole) {
       await member.roles.add(memberRole);
     }
@@ -443,72 +446,320 @@ client.on("guildMemberRemove", async (member) => {
 });
 
 
-client.on("messageDelete", async (message) => {
-  const logsChannel = message.guild?.channels.cache.find(
-    (channel) => channel.name === "📝┃message-logs",
-  );
+// Enhanced server logging system
+function getLogsChannel(guild) {
+  const guildSettings = serverSettings[guild.id] || {};
+  return guildSettings.logsChannelId 
+    ? guild.channels.cache.get(guildSettings.logsChannelId)
+    : null;
+}
 
+client.on("messageDelete", async (message) => {
+  if (!message.guild || message.author?.bot) return;
+
+  const logsChannel = getLogsChannel(message.guild);
   if (logsChannel && message.content) {
     const logEmbed = new EmbedBuilder()
       .setColor("#FF0000")
-      .setTitle("Message Deleted")
-      .setDescription(
-        `Message by ${message.author} was deleted in ${message.channel}`,
+      .setTitle("🗑️ Message Deleted")
+      .setDescription(`Message by ${message.author} was deleted in ${message.channel}`)
+      .addFields(
+        { name: "Content", value: message.content.length > 1024 ? message.content.substring(0, 1021) + "..." : message.content },
+        { name: "Channel", value: `${message.channel}`, inline: true },
+        { name: "Author", value: `${message.author}`, inline: true }
       )
-      .addFields({ name: "Content", value: message.content })
       .setTimestamp();
 
-    await logsChannel.send({ embeds: [logEmbed] });
+    await logsChannel.send({ embeds: [logEmbed] }).catch(err => console.error('Failed to send delete log:', err));
   }
 });
 
 client.on("messageUpdate", async (oldMessage, newMessage) => {
+  if (!oldMessage.guild || oldMessage.author?.bot) return;
   if (oldMessage.content === newMessage.content) return;
 
-  const logsChannel = oldMessage.guild?.channels.cache.find(
-    (channel) => channel.name === "📝┃message-logs",
-  );
-
+  const logsChannel = getLogsChannel(oldMessage.guild);
   if (logsChannel) {
     const logEmbed = new EmbedBuilder()
       .setColor("#FFA500")
-      .setTitle("Message Edited")
-      .setDescription(
-        `Message by ${oldMessage.author} was edited in ${oldMessage.channel}`,
-      )
+      .setTitle("✏️ Message Edited")
+      .setDescription(`Message by ${oldMessage.author} was edited in ${oldMessage.channel}`)
       .addFields(
-        { name: "Before", value: oldMessage.content || "No content" },
-        { name: "After", value: newMessage.content || "No content" },
+        { name: "Before", value: (oldMessage.content || "No content").length > 512 ? (oldMessage.content || "No content").substring(0, 509) + "..." : (oldMessage.content || "No content") },
+        { name: "After", value: (newMessage.content || "No content").length > 512 ? (newMessage.content || "No content").substring(0, 509) + "..." : (newMessage.content || "No content") },
+        { name: "Channel", value: `${oldMessage.channel}`, inline: true },
+        { name: "Author", value: `${oldMessage.author}`, inline: true }
       )
       .setTimestamp();
 
-    await logsChannel.send({ embeds: [logEmbed] });
+    await logsChannel.send({ embeds: [logEmbed] }).catch(err => console.error('Failed to send edit log:', err));
   }
 });
 
 client.on("guildMemberUpdate", async (oldMember, newMember) => {
-  const logsChannel = oldMember.guild?.channels.cache.find(
-    (channel) => channel.name === "📝┃user-logs",
-  );
+  const logsChannel = getLogsChannel(oldMember.guild);
+  if (!logsChannel) return;
 
+  const oldRoles = oldMember.roles.cache.map((role) => role.name).join(", ") || "None";
+  const newRoles = newMember.roles.cache.map((role) => role.name).join(", ") || "None";
+
+  if (oldRoles !== newRoles) {
+    const logEmbed = new EmbedBuilder()
+      .setColor("#0000FF")
+      .setTitle("👤 Member Roles Updated")
+      .setDescription(`Roles updated for ${newMember.user.tag}`)
+      .addFields(
+        { name: "Old Roles", value: oldRoles.length > 1024 ? oldRoles.substring(0, 1021) + "..." : oldRoles },
+        { name: "New Roles", value: newRoles.length > 1024 ? newRoles.substring(0, 1021) + "..." : newRoles },
+        { name: "Member", value: `${newMember.user}`, inline: true },
+        { name: "User ID", value: newMember.id, inline: true }
+      )
+      .setTimestamp();
+
+    await logsChannel.send({ embeds: [logEmbed] }).catch(err => console.error('Failed to send member update log:', err));
+  }
+
+  // Log nickname changes
+  if (oldMember.nickname !== newMember.nickname) {
+    const nicknameEmbed = new EmbedBuilder()
+      .setColor("#9B59B6")
+      .setTitle("📝 Nickname Changed")
+      .setDescription(`${newMember.user.tag}'s nickname was changed`)
+      .addFields(
+        { name: "Old Nickname", value: oldMember.nickname || "None", inline: true },
+        { name: "New Nickname", value: newMember.nickname || "None", inline: true },
+        { name: "Member", value: `${newMember.user}`, inline: true }
+      )
+      .setTimestamp();
+
+    await logsChannel.send({ embeds: [nicknameEmbed] }).catch(err => console.error('Failed to send nickname log:', err));
+  }
+});
+
+// Channel logging events
+client.on("channelCreate", async (channel) => {
+  if (!channel.guild) return;
+
+  const logsChannel = getLogsChannel(channel.guild);
   if (logsChannel) {
-    const oldRoles = oldMember.roles.cache.map((role) => role.name).join(", ");
-    const newRoles = newMember.roles.cache.map((role) => role.name).join(", ");
+    const logEmbed = new EmbedBuilder()
+      .setColor("#00FF00")
+      .setTitle("📝 Channel Created")
+      .setDescription(`A new channel was created`)
+      .addFields(
+        { name: "Channel", value: `${channel}`, inline: true },
+        { name: "Type", value: channel.type.toString(), inline: true },
+        { name: "Category", value: channel.parent ? channel.parent.name : "None", inline: true },
+        { name: "Channel ID", value: channel.id, inline: true }
+      )
+      .setTimestamp();
 
-    if (oldRoles !== newRoles) {
+    await logsChannel.send({ embeds: [logEmbed] }).catch(err => console.error('Failed to send channel create log:', err));
+  }
+});
+
+client.on("channelDelete", async (channel) => {
+  if (!channel.guild) return;
+
+  const logsChannel = getLogsChannel(channel.guild);
+  if (logsChannel && channel.id !== logsChannel.id) { // Don't log if logs channel itself is deleted
+    const logEmbed = new EmbedBuilder()
+      .setColor("#FF0000")
+      .setTitle("🗑️ Channel Deleted")
+      .setDescription(`A channel was deleted`)
+      .addFields(
+        { name: "Channel Name", value: channel.name, inline: true },
+        { name: "Type", value: channel.type.toString(), inline: true },
+        { name: "Category", value: channel.parent ? channel.parent.name : "None", inline: true },
+        { name: "Channel ID", value: channel.id, inline: true }
+      )
+      .setTimestamp();
+
+    await logsChannel.send({ embeds: [logEmbed] }).catch(err => console.error('Failed to send channel delete log:', err));
+  }
+});
+
+client.on("channelUpdate", async (oldChannel, newChannel) => {
+  if (!newChannel.guild) return;
+
+  const logsChannel = getLogsChannel(newChannel.guild);
+  if (logsChannel) {
+    const changes = [];
+
+    if (oldChannel.name !== newChannel.name) {
+      changes.push({ name: "Name Changed", value: `${oldChannel.name} → ${newChannel.name}` });
+    }
+
+    if (oldChannel.topic !== newChannel.topic) {
+      changes.push({ name: "Topic Changed", value: `${oldChannel.topic || "None"} → ${newChannel.topic || "None"}` });
+    }
+
+    if (oldChannel.parent?.id !== newChannel.parent?.id) {
+      changes.push({ name: "Category Changed", value: `${oldChannel.parent?.name || "None"} → ${newChannel.parent?.name || "None"}` });
+    }
+
+    if (changes.length > 0) {
       const logEmbed = new EmbedBuilder()
-        .setColor("#0000FF")
-        .setTitle("Member Roles Updated")
-        .setDescription(`Roles updated for ${newMember.user.tag}`)
-        .addFields(
-          { name: "Old Roles", value: oldRoles },
-          { name: "New Roles", value: newRoles },
-        )
+        .setColor("#FFA500")
+        .setTitle("✏️ Channel Updated")
+        .setDescription(`Channel ${newChannel} was modified`)
+        .addFields(changes)
+        .addFields({ name: "Channel ID", value: newChannel.id, inline: true })
         .setTimestamp();
 
-      await logsChannel.send({ embeds: [logEmbed] });
+      await logsChannel.send({ embeds: [logEmbed] }).catch(err => console.error('Failed to send channel update log:', err));
     }
   }
+});
+
+// Role logging events
+client.on("roleCreate", async (role) => {
+  const logsChannel = getLogsChannel(role.guild);
+  if (logsChannel) {
+    const logEmbed = new EmbedBuilder()
+      .setColor("#00FF00")
+      .setTitle("🎭 Role Created")
+      .setDescription(`A new role was created`)
+      .addFields(
+        { name: "Role", value: `${role}`, inline: true },
+        { name: "Color", value: role.hexColor, inline: true },
+        { name: "Hoisted", value: role.hoist ? "Yes" : "No", inline: true },
+        { name: "Mentionable", value: role.mentionable ? "Yes" : "No", inline: true },
+        { name: "Role ID", value: role.id, inline: true }
+      )
+      .setTimestamp();
+
+    await logsChannel.send({ embeds: [logEmbed] }).catch(err => console.error('Failed to send role create log:', err));
+  }
+});
+
+client.on("roleDelete", async (role) => {
+  const logsChannel = getLogsChannel(role.guild);
+  if (logsChannel) {
+    const logEmbed = new EmbedBuilder()
+      .setColor("#FF0000")
+      .setTitle("🗑️ Role Deleted")
+      .setDescription(`A role was deleted`)
+      .addFields(
+        { name: "Role Name", value: role.name, inline: true },
+        { name: "Color", value: role.hexColor, inline: true },
+        { name: "Members", value: role.members.size.toString(), inline: true },
+        { name: "Role ID", value: role.id, inline: true }
+      )
+      .setTimestamp();
+
+    await logsChannel.send({ embeds: [logEmbed] }).catch(err => console.error('Failed to send role delete log:', err));
+  }
+});
+
+client.on("roleUpdate", async (oldRole, newRole) => {
+  const logsChannel = getLogsChannel(newRole.guild);
+  if (logsChannel) {
+    const changes = [];
+
+    if (oldRole.name !== newRole.name) {
+      changes.push({ name: "Name Changed", value: `${oldRole.name} → ${newRole.name}` });
+    }
+
+    if (oldRole.hexColor !== newRole.hexColor) {
+      changes.push({ name: "Color Changed", value: `${oldRole.hexColor} → ${newRole.hexColor}` });
+    }
+
+    if (oldRole.hoist !== newRole.hoist) {
+      changes.push({ name: "Hoisted Changed", value: `${oldRole.hoist ? "Yes" : "No"} → ${newRole.hoist ? "Yes" : "No"}` });
+    }
+
+    if (oldRole.mentionable !== newRole.mentionable) {
+      changes.push({ name: "Mentionable Changed", value: `${oldRole.mentionable ? "Yes" : "No"} → ${newRole.mentionable ? "Yes" : "No"}` });
+    }
+
+    if (changes.length > 0) {
+      const logEmbed = new EmbedBuilder()
+        .setColor("#FFA500")
+        .setTitle("🎭 Role Updated")
+        .setDescription(`Role ${newRole} was modified`)
+        .addFields(changes)
+        .addFields({ name: "Role ID", value: newRole.id, inline: true })
+        .setTimestamp();
+
+      await logsChannel.send({ embeds: [logEmbed] }).catch(err => console.error('Failed to send role update log:', err));
+    }
+  }
+});
+
+// Channel permission overwrite logging
+client.on("channelUpdate", async (oldChannel, newChannel) => {
+  if (!newChannel.guild) return;
+
+  const logsChannel = getLogsChannel(newChannel.guild);
+  if (!logsChannel) return;
+
+  // Check for permission overwrites changes
+  const oldOverwrites = oldChannel.permissionOverwrites.cache;
+  const newOverwrites = newChannel.permissionOverwrites.cache;
+
+  // Find added overwrites
+  newOverwrites.forEach(async (newOverwrite, id) => {
+    const oldOverwrite = oldOverwrites.get(id);
+    if (!oldOverwrite) {
+      // New permission overwrite added
+      const target = newOverwrite.type === 0 ? newChannel.guild.roles.cache.get(id) : newChannel.guild.members.cache.get(id);
+      if (target) {
+        const logEmbed = new EmbedBuilder()
+          .setColor("#00FF00")
+          .setTitle("🔐 Channel Permissions Added")
+          .setDescription(`New permissions set for ${newChannel}`)
+          .addFields(
+            { name: "Target", value: target.toString(), inline: true },
+            { name: "Type", value: newOverwrite.type === 0 ? "Role" : "Member", inline: true },
+            { name: "Allow", value: newOverwrite.allow.toArray().join(", ") || "None", inline: false },
+            { name: "Deny", value: newOverwrite.deny.toArray().join(", ") || "None", inline: false }
+          )
+          .setTimestamp();
+
+        await logsChannel.send({ embeds: [logEmbed] }).catch(err => console.error('Failed to send permission add log:', err));
+      }
+    } else if (oldOverwrite.allow.bitfield !== newOverwrite.allow.bitfield || oldOverwrite.deny.bitfield !== newOverwrite.deny.bitfield) {
+      // Permission overwrite modified
+      const target = newOverwrite.type === 0 ? newChannel.guild.roles.cache.get(id) : newChannel.guild.members.cache.get(id);
+      if (target) {
+        const logEmbed = new EmbedBuilder()
+          .setColor("#FFA500")
+          .setTitle("🔐 Channel Permissions Updated")
+          .setDescription(`Permissions updated for ${newChannel}`)
+          .addFields(
+            { name: "Target", value: target.toString(), inline: true },
+            { name: "Type", value: newOverwrite.type === 0 ? "Role" : "Member", inline: true },
+            { name: "New Allow", value: newOverwrite.allow.toArray().join(", ") || "None", inline: false },
+            { name: "New Deny", value: newOverwrite.deny.toArray().join(", ") || "None", inline: false }
+          )
+          .setTimestamp();
+
+        await logsChannel.send({ embeds: [logEmbed] }).catch(err => console.error('Failed to send permission update log:', err));
+      }
+    }
+  });
+
+  // Find removed overwrites
+  oldOverwrites.forEach(async (oldOverwrite, id) => {
+    if (!newOverwrites.has(id)) {
+      // Permission overwrite removed
+      const target = oldOverwrite.type === 0 ? newChannel.guild.roles.cache.get(id) : newChannel.guild.members.cache.get(id);
+      if (target) {
+        const logEmbed = new EmbedBuilder()
+          .setColor("#FF0000")
+          .setTitle("🔐 Channel Permissions Removed")
+          .setDescription(`Permissions removed for ${newChannel}`)
+          .addFields(
+            { name: "Target", value: target.toString(), inline: true },
+            { name: "Type", value: oldOverwrite.type === 0 ? "Role" : "Member", inline: true }
+          )
+          .setTimestamp();
+
+        await logsChannel.send({ embeds: [logEmbed] }).catch(err => console.error('Failed to send permission remove log:', err));
+      }
+    }
+  });
 });
 
 client.on("messageCreate", async (message) => {
@@ -628,7 +879,7 @@ client.on("messageCreate", async (message) => {
       return;
     }
 
-    
+
   }
 
   if (!message.content.startsWith(prefix)) return;
@@ -719,60 +970,7 @@ client.on("messageCreate", async (message) => {
     return message.reply("This command has been disabled.");
   }
 
-  if (command === "setup" || command === "serversetup") {
-    if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-      return message.reply("You need administrator permissions to use this command!");
-    }
-
-    const guild = message.guild;
-
-    // Define roles
-    const roles = {
-      owner: guild.roles.cache.find((role) => role.name === "Owner"),
-      admin: guild.roles.cache.find((role) => role.name === "Admin"),
-      moderator: guild.roles.cache.find((role) => role.name === "Moderator"),
-      member: guild.roles.cache.find((role) => role.name === "Member"),
-      bot: guild.roles.cache.find((role) => role.name === "Bot"),
-      announcementPing: guild.roles.cache.find((role) => role.name === "Announcement Ping"),
-      giveawayPing: guild.roles.cache.find((role) => role.name === "Giveaway Ping"),
-    };
-
-    // Check if the roles exist, create them if they don't
-    const roleNames = {
-      owner: "Owner",
-      admin: "Admin", 
-      moderator: "Moderator",
-      member: "Member",
-      bot: "Bot",
-      announcementPing: "Announcement Ping",
-      giveawayPing: "Giveaway Ping"
-    };
-
-    for (const [key, roleName] of Object.entries(roleNames)) {
-      if (!roles[key]) {
-        try {
-          const newRole = await guild.roles.create({
-            name: roleName,
-            reason: "Creating default roles for the server setup",
-          });
-          roles[key] = newRole;
-          console.log(`Created role: ${roleName}`);
-        } catch (error) {
-          console.error(`Error creating role ${roleName}:`, error);
-          return message.reply(`Failed to create the ${roleName} role.`);
-        }
-      }
-    }
-
-    try {
-      await setupRolesChannel(guild, roles); // Call function to set up channels and categories
-      await message.reply("Server setup complete!");
-    } catch (error) {
-      console.error("Error setting up server:", error);
-      await message.reply("An error occurred while setting up the server.");
-    }
-  }
-
+  // Removed the !serversetup command
 
   if (command === "deletealltickets") {
     if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
@@ -825,60 +1023,36 @@ client.on("messageCreate", async (message) => {
     const helpEmbed = new EmbedBuilder()
       .setColor("#FF4500")
       .setTitle("🔥 Flamin' Hot Games Bot Commands")
-      .setDescription("Here are all available commands for managing your gaming community:")
+      .setDescription("Here are all available commands for managing your community:")
       .addFields(
         {
           name: "🛠️ Admin Commands",
-          value: `
-!purge <number> - Delete messages (Staff+)
-!editpanel "Title" Description - Edit support panel (Admin only)
-!lock - Lock the current channel (Staff+)
-!unlock - Unlock the current channel (Staff+)
-!deletealltickets - Delete all tickets and reset counter (Admin only)
-!toggleautomod - Toggle auto-moderation (Admin only)
-!togglebadwords - Toggle bad words filter (Admin only)
-!togglecaps - Toggle caps filter (Admin only)
-!togglespam - Toggle spam filter (Admin only)
-!set allmemberschannel #channel - Set total members count channel (Admin only)
-!set memberschannel #channel - Set human members count channel (Admin only)
-!set botschannel #channel - Set bot members count channel (Admin only)
-!set welcomechannel #channel - Set welcome messages channel (Admin only)
-!set ownerrole @role - Set the owner role (Owner only)
-!set adminrole @role - Set the admin role (Owner only)
-!set modrole @role - Set the moderator role (Admin+)
-!set memberrole @role - Set the member role (Admin+)
-!rr - Create a reaction roles panel for notification roles (Admin only)
-!setlvlchannel #channel - Set level up notification channel (Admin only)
-!serversetup - setup the channels and roles (Admin only)`,
+          value: "!purge <number> - Delete messages (Staff+)\n!editpanel \"Title\" Description - Edit support panel (Admin only)\n!lock - Lock the current channel (Staff+)\n!unlock - Unlock the current channel (Staff+)\n!deletealltickets - Delete all tickets and reset counter (Admin only)\n!toggleautomod - Toggle auto-moderation (Admin only)\n!togglebadwords - Toggle bad words filter (Admin only)\n!togglecaps - Toggle caps filter (Admin only)\n!togglespam - Toggle spam filter (Admin only)",
+          inline: false,
+        },
+        {
+          name: "🔧 Server Settings",
+          value: "!set allmemberschannel #channel - Set total members count channel (Admin only)\n!set memberschannel #channel - Set human members count channel (Admin only)\n!set botschannel #channel - Set bot members count channel (Admin only)\n!set welcomechannel #channel - Set welcome messages channel (Admin only)\n!set logschannel #channel - Set server logs channel (Admin only)\n!set ownerrole @role - Set the owner role (Owner only)\n!set adminrole @role - Set the admin role (Owner only)\n!set modrole @role - Set the moderator role (Admin+)\n!set memberrole @role - Set the member role (Admin+)",
+          inline: false,
+        },
+        {
+          name: "🎮 Community Features",
+          value: "!rr - Create a reaction roles panel for notification roles (Admin only)\n!setlvlchannel #channel - Set level up notification channel (Admin only)\n!vote create \"Question\" \"Option1\" \"Option2\" - Create a poll\n!vote end <vote_id> - End a poll\n!vote participate <vote_id> - Participate in a poll\n!invite tracker - Show invite tracker commands",
           inline: false,
         },
         {
           name: "🔨 Moderation",
-          value: `
-!kick @user [reason] - Kick a member (Staff+)
-!ban @user [reason] - Ban a member (Staff+)
-!unban userID [reason] - Unban a member (Staff+)
-!warn @user [reason] - Warn a member (Staff+)
-!mute @user [time][m/h/d] [reason] - Timeout a member (Staff+)
-!unmute @user - Remove timeout from a member (Staff+)`,
+          value: "!kick @user [reason] - Kick a member (Staff+)\n!ban @user [reason] - Ban a member (Staff+)\n!unban userID [reason] - Unban a member (Staff+)\n!warn @user [reason] - Warn a member (Staff+)\n!mute @user [time][m/h/d] [reason] - Timeout a member (Staff+)\n!unmute @user - Remove timeout from a member (Staff+)",
           inline: false,
         },
         {
-          name: "🔥 Gaming Leveling",
-          value: `
-!lvl - View your gamer level and XP
-!lvl @user - View another user's gamer level
-!leaderboard - View top gamers
-!givexp @user amount - Give XP to a user (Owner only)
-!resetlevel @user - Reset a user's level (Owner only)`,
+          name: "🔥 Leveling System",
+          value: "!lvl - View your level and XP\n!lvl @user - View another user's level\n!leaderboard - View top users\n!givexp @user amount - Give XP to a user (Owner only)\n!resetlevel @user - Reset a user's level (Owner only)",
           inline: false,
         },
         {
           name: "ℹ️ General Commands",
-          value: `
-!ping - Check bot latency
-!rules - Display community rules
-!help - Show this message`,
+          value: "!ping - Check bot latency\n!rules - Display community rules\n!help - Show this message",
           inline: false,
         },
       )
@@ -893,12 +1067,12 @@ client.on("messageCreate", async (message) => {
     const rulesEmbed = new EmbedBuilder()
       .setColor("#FF4500")
       .setTitle("🔥 Flamin' Hot Games Community Rules")
-      .setDescription("Please follow these rules to keep our gaming community spicy and fun:")
+      .setDescription("Please follow these rules to keep our community fun:")
       .addFields(
         {
           name: "1. Be Respectful",
           value:
-            "Treat all gamers with respect. No harassment, hate speech, or bullying.",
+            "Treat all members with respectfully. No harassment, hate speech, or bullying.",
         },
         {
           name: "2. No Spamming",
@@ -906,11 +1080,11 @@ client.on("messageCreate", async (message) => {
         },
         {
           name: "3. Use Appropriate Channels",
-          value: "Post gaming content, tips, and discussions in the right channels.",
+          value: "Post images, tips, and discussions in the right channels.",
         },
         {
           name: "4. Keep Content Appropriate",
-          value: "Keep all content family-friendly and gaming-related.",
+          value: "Keep all content family-friendly.",
         },
         {
           name: "5. Follow Discord TOS",
@@ -919,10 +1093,6 @@ client.on("messageCreate", async (message) => {
         {
           name: "6. Listen to Staff",
           value: "Follow instructions from server moderators and admins.",
-        },
-        {
-          name: "7. Share Your Gaming",
-          value: "Feel free to share your amazing gaming moments and achievements with the community!",
         },
       )
       .setTimestamp();
@@ -1624,10 +1794,10 @@ client.on("messageCreate", async (message) => {
 
     const embed = new EmbedBuilder()
       .setColor('#FF4500')
-      .setTitle('🔥 Flamin\' Hot Gamer Level')
-      .setDescription(`**${target.username}**'s gaming progress:`)
+      .setTitle('🔥 User Level & Experience')
+      .setDescription(`**${target.username}**'s progress:`)
       .addFields(
-        { name: '🏆 Gamer Level', value: `${userData.level}`, inline: true },
+        { name: '🏆 Level', value: `${userData.level}`, inline: true },
         { name: '✨ Current XP', value: `${userData.xp}/${calculateXPForLevel(userData.level + 1) - calculateXPForLevel(userData.level)}`, inline: true },
         { name: '💫 Total XP', value: `${userData.totalXP}`, inline: true },
         { name: '💬 Messages Sent', value: `${userData.messages}`, inline: true }
@@ -1654,8 +1824,8 @@ client.on("messageCreate", async (message) => {
 
     const embed = new EmbedBuilder()
       .setColor('#FF4500')
-      .setTitle('🏆 Top Flamin\' Hot Gamers')
-      .setDescription('Here are the top gamers in this community:')
+      .setTitle('🏆 Server Leaderboard')
+      .setDescription('Here are the top users in this community:')
       .setTimestamp();
 
     let description = '';
@@ -1872,6 +2042,24 @@ client.on("messageCreate", async (message) => {
         ]
       });
     }
+    else if (subCommand === "logschannel") {
+      const channel = message.mentions.channels.first();
+      if (!channel) {
+        return message.reply("Please mention a channel to set for server logs.");
+      }
+
+      guildSettings.logsChannelId = channel.id;
+      saveServerSettings();
+
+      message.reply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor("#00FF00")
+            .setTitle("✅ Channel Set")
+            .setDescription(`Server logs channel set to ${channel}`)
+        ]
+      });
+    }
     else if (subCommand === "ownerrole") {
       // Only server owner can set this
       if (message.author.id !== message.guild.ownerId) {
@@ -1936,7 +2124,7 @@ client.on("messageCreate", async (message) => {
       // Owner or admin can set this
       const hasOwnerRole = guildSettings.ownerRoleId && message.member.roles.cache.has(guildSettings.ownerRoleId);
       const hasAdminRole = guildSettings.adminRoleId && message.member.roles.cache.has(guildSettings.adminRoleId);
-      
+
       if (message.author.id !== message.guild.ownerId && !hasOwnerRole && !hasAdminRole) {
         return message.reply({
           embeds: [
@@ -1969,7 +2157,7 @@ client.on("messageCreate", async (message) => {
       // Owner or admin can set this
       const hasOwnerRole = guildSettings.ownerRoleId && message.member.roles.cache.has(guildSettings.ownerRoleId);
       const hasAdminRole = guildSettings.adminRoleId && message.member.roles.cache.has(guildSettings.adminRoleId);
-      
+
       if (message.author.id !== message.guild.ownerId && !hasOwnerRole && !hasAdminRole) {
         return message.reply({
           embeds: [
@@ -2005,7 +2193,7 @@ client.on("messageCreate", async (message) => {
         .setTitle("!set Command Help")
         .setDescription("Configure server settings with the following options:")
         .addFields(
-          { name: "Channel Settings", value: "!set allmemberschannel #channel - Set total members count channel\n!set memberschannel #channel - Set human members count channel\n!set botschannel #channel - Set bot members count channel\n!set welcomechannel #channel - Set welcome messages channel" },
+          { name: "Channel Settings", value: "!set allmemberschannel #channel - Set total members count channel\n!set memberschannel #channel - Set human members count channel\n!set botschannel #channel - Set bot members count channel\n!set welcomechannel #channel - Set welcome messages channel\n!set logschannel #channel - Set server logs channel" },
           { name: "Role Settings", value: "!set ownerrole @role - Set owner role (Server Owner only)\n!set adminrole @role - Set admin role (Server Owner only)\n!set modrole @role - Set moderator role (Owner/Admin only)\n!set memberrole @role - Set member role (Owner/Admin only)" }
         )
         .setFooter({ text: "Role permissions determine who can use specific commands" });
@@ -2065,12 +2253,12 @@ client.on("messageCreate", async (message) => {
       .addFields(
         {
           name: "📢 Announcement Ping",
-          value: "Get notified for important community updates and game news",
+          value: "Get notified for important community updates and game news!",
           inline: false,
         },
         {
           name: "🎁 Giveaway Ping",
-          value: "Get notified when we host spicy gaming giveaways and events",
+          value: "Get notified when we host awesome giveaways and events!",
           inline: false,
         },
       )
@@ -2622,7 +2810,7 @@ client.on("interactionCreate", async (interaction) => {
       const welcomeEmbed = new EmbedBuilder()
         .setColor("#FF4500")
         .setTitle("🔥 Welcome to Your Flamin' Hot Games Support Ticket")
-        .setDescription("Our gaming community support team will assist you shortly.\n\n**Tips:**\n• Describe your gaming issue or question clearly\n• You can ping other members to add them to the ticket\n• Staff will claim the ticket when available\n• Feel free to share screenshots of your gaming moments if relevant")
+        .setDescription("Our staff team will assist you shortly.\n\n**Tips:**\n• Describe your issue or question clearly\n• You can ping other members to add them to the ticket\n• Staff will claim the ticket when available\n• Feel free to share screenshots/videos of your issues if relevant")
         .setTimestamp();
 
       await ticketChannel.send({
