@@ -264,7 +264,7 @@ const client = new Client({
   restTimeOffset: 0,
   failIfNotExists: false,
   presence: {
-    activities: [{ name: `Flamin' Hot Games`, type: ActivityType.Playing }],
+    activities: [{ name: `Skull`, type: ActivityType.Playing }],
     status: 'online'
   }
 });
@@ -313,7 +313,7 @@ client.once("ready", async () => {
 
   setInterval(() => {
     const activities = [
-      { name: `Flamin' Hot Games`, type: ActivityType.Playing },
+      { name: `Skull`, type: ActivityType.Playing },
       { name: `${client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0)} gamers`, type: ActivityType.Watching },
       { name: `${client.guilds.cache.size} gaming communities`, type: ActivityType.Competing }
     ];
@@ -2340,7 +2340,6 @@ async function setupRolesChannel(guild, roles) {
         { name: "📜┃giveaway-proof", type: ChannelType.GuildText },
         { name: "🔰┃vouch", type: ChannelType.GuildText },
         { name: "📊┃levels", type: ChannelType.GuildText },
-        { name: "🐣┃huge-hatched", type: ChannelType.GuildText },
       ],
       permissions: [
         {
