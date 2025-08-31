@@ -575,7 +575,7 @@ function checkMessageBasedAchievements(userId, guildId, message) {
   userLevels.set(userKey, userData);
 }
 
-const token = "MTQwOTkyNDQ0OTM1NjA5MTQ1Mg.G5dMpD.GJW4XtOC8xhXOYgKzSjN-8pUXSbzSx5YnOjVnQ";
+const token = "MTQwOTkyNDQ0OTM1NjA5MTQ1Mg.GD1Pkx.LscwljTyf0efiAHC3T9AdxYlmTmSNzfPeLJJgE";
 
 const client = new Client({
   intents: Object.values(GatewayIntentBits),
