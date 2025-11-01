@@ -1,0 +1,126 @@
+{
+  "1320151781816143995-1339421101544964139": {
+    "coins": 40,
+    "fishingLevel": 1,
+    "fishingXP": 0,
+    "fishingInventory": {},
+    "fishingRod": "basic_rod",
+    "ownedFishingRods": [
+      "basic_rod"
+    ],
+    "miningLevel": 1,
+    "miningXP": 14,
+    "miningInventory": {
+      "Coal": 1,
+      "Iron": 1
+    },
+    "miningPickaxe": "basic_pickaxe",
+    "ownedPickaxes": [
+      "basic_pickaxe"
+    ],
+    "farmingLevel": 1,
+    "farmingXP": 6,
+    "farmingInventory": {
+      "Wheat": 1
+    },
+    "farmingHoe": "basic_hoe",
+    "ownedHoes": [
+      "basic_hoe"
+    ],
+    "workLevel": 1,
+    "workXP": 0,
+    "lastWork": 0,
+    "pets": [
+      {
+        "id": "turtle_1762033181621",
+        "type": "turtle",
+        "name": "🐢 Turtle",
+        "rarity": "Common",
+        "boost": {
+          "type": "cooldown",
+          "value": 0.95
+        },
+        "hunger": 100,
+        "xp": 0,
+        "level": 1
+      },
+      {
+        "id": "turtle_1762033191006",
+        "type": "turtle",
+        "name": "🐢 Turtle",
+        "rarity": "Common",
+        "boost": {
+          "type": "cooldown",
+          "value": 0.95
+        },
+        "hunger": 100,
+        "xp": 0,
+        "level": 1
+      }
+    ],
+    "equippedPet": null,
+    "items": {},
+    "activeEffects": [],
+    "prestige": 0,
+    "prestigeBonus": 1,
+    "lastFish": 0,
+    "lastMine": 1762033253159,
+    "lastFarm": 1762033262852,
+    "inTrade": false,
+    "autoFarmExpiry": 0
+  },
+  "1099478869607723008-1339421101544964139": {
+    "coins": 508,
+    "fishingLevel": 1,
+    "fishingXP": 0,
+    "fishingInventory": {},
+    "fishingRod": "basic_rod",
+    "ownedFishingRods": [
+      "basic_rod"
+    ],
+    "miningLevel": 1,
+    "miningXP": 4,
+    "miningInventory": {
+      "Coal": 1
+    },
+    "miningPickaxe": "basic_pickaxe",
+    "ownedPickaxes": [
+      "basic_pickaxe"
+    ],
+    "farmingLevel": 1,
+    "farmingXP": 0,
+    "farmingInventory": {},
+    "farmingHoe": "basic_hoe",
+    "ownedHoes": [
+      "basic_hoe"
+    ],
+    "workLevel": 1,
+    "workXP": 0,
+    "lastWork": 0,
+    "pets": [
+      {
+        "id": "turtle_1762033203101",
+        "type": "turtle",
+        "name": "🐢 Turtle",
+        "rarity": "Common",
+        "boost": {
+          "type": "cooldown",
+          "value": 0.95
+        },
+        "hunger": 100,
+        "xp": 0,
+        "level": 1
+      }
+    ],
+    "equippedPet": null,
+    "items": {},
+    "activeEffects": [],
+    "prestige": 0,
+    "prestigeBonus": 1,
+    "lastFish": 0,
+    "lastMine": 1762033255034,
+    "lastFarm": 0,
+    "inTrade": false,
+    "autoFarmExpiry": 0
+  }
+}
