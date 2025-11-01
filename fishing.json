@@ -1,0 +1,540 @@
+{
+  "886398974456655892-1339421101544964139": {
+    "level": 99999,
+    "experience": 24,
+    "coins": 113,
+    "totalFish": 2,
+    "totalCasts": 2,
+    "fishCaught": {
+      "minnow": 1,
+      "bluegill": 1
+    },
+    "currentRod": {
+      "id": "basic",
+      "name": "Mythical Angler's Dream",
+      "emoji": "🎣",
+      "description": "A simple fishing rod for beginners",
+      "price": 0,
+      "catchRate": 35,
+      "rareBonus": 0,
+      "durability": 100
+    },
+    "ownedRods": [
+      "basic"
+    ],
+    "currentArea": "Mystical Realm",
+    "currentBoat": {
+      "id": "none",
+      "name": "Mythical Vessel",
+      "emoji": "🏖️",
+      "description": "Fishing from the shore",
+      "price": 0,
+      "areaBonus": 0,
+      "catchBonus": 0,
+      "unlockLevel": 0
+    },
+    "ownedBoats": [
+      "none"
+    ],
+    "baitInventory": {
+      "Phoenix Feathers": 9999
+    },
+    "currentBait": null,
+    "lastFished": 1758456841705,
+    "biggestCatch": {
+      "id": "bluegill",
+      "name": "Bluegill",
+      "emoji": "🔵",
+      "rarity": "Common",
+      "value": 8,
+      "experience": 15,
+      "size": "Tiny",
+      "preferredBait": [
+        "worms",
+        "crickets"
+      ],
+      "caughtAt": "Peaceful Pond"
+    },
+    "fishingStreak": 9999,
+    "lastStreakDate": "Sun Sep 21 2025",
+    "luckyBoxes": {},
+    "workers": {},
+    "lastWorkerCollection": null
+  },
+  "1253264619363893324-1339421101544964139": {
+    "level": 0,
+    "experience": 4018,
+    "coins": 1034,
+    "totalFish": 213,
+    "totalCasts": 375,
+    "fishCaught": {
+      "bass": 39,
+      "minnow": 35,
+      "catfish": 33,
+      "bluegill": 44,
+      "trout": 28,
+      "perch": 34
+    },
+    "currentRod": {
+      "id": "baitcasting",
+      "name": "Baitcasting Rod",
+      "emoji": "🎯",
+      "description": "Precision rod for accurate casting",
+      "price": 1200,
+      "catchRate": 68,
+      "rareBonus": 18,
+      "durability": 220
+    },
+    "ownedRods": [
+      "basic",
+      "bamboo",
+      "carbon",
+      "baitcasting"
+    ],
+    "currentArea": "pond",
+    "currentBoat": {
+      "id": "none",
+      "name": "Shore Fishing",
+      "emoji": "🏖️",
+      "description": "Fishing from the shore",
+      "price": 0,
+      "areaBonus": 0,
+      "catchBonus": 0,
+      "unlockLevel": 0
+    },
+    "ownedBoats": [
+      "none"
+    ],
+    "baitInventory": {},
+    "currentBait": null,
+    "lastFished": 1761516198200,
+    "biggestCatch": {
+      "id": "trout",
+      "name": "Rainbow Trout",
+      "emoji": "🎣",
+      "rarity": "Common",
+      "value": 30,
+      "experience": 36,
+      "size": "Small",
+      "preferredBait": [
+        "flies",
+        "worms"
+      ],
+      "caughtAt": "Peaceful Pond"
+    },
+    "fishingStreak": 1,
+    "lastStreakDate": "Sun Oct 26 2025",
+    "luckyBoxes": {},
+    "workers": {},
+    "lastWorkerCollection": null
+  },
+  "1241874375179894834-1339421101544964139": {
+    "level": 0,
+    "experience": 944,
+    "coins": 295,
+    "totalFish": 49,
+    "totalCasts": 108,
+    "fishCaught": {
+      "catfish": 3,
+      "bass": 5,
+      "bluegill": 1
+    },
+    "currentRod": {
+      "id": "carbon",
+      "name": "Carbon Fiber Rod",
+      "emoji": "⚡",
+      "description": "Modern carbon fiber construction",
+      "price": 500,
+      "catchRate": 55,
+      "rareBonus": 10,
+      "durability": 200
+    },
+    "ownedRods": [
+      "basic",
+      "bamboo",
+      "carbon"
+    ],
+    "currentArea": "pond",
+    "currentBoat": {
+      "id": "none",
+      "name": "Shore Fishing",
+      "emoji": "🏖️",
+      "description": "Fishing from the shore",
+      "price": 0,
+      "areaBonus": 0,
+      "catchBonus": 0,
+      "unlockLevel": 0
+    },
+    "ownedBoats": [
+      "none"
+    ],
+    "baitInventory": {},
+    "currentBait": null,
+    "lastFished": 1758924235268,
+    "biggestCatch": {
+      "id": "trout",
+      "name": "Rainbow Trout",
+      "emoji": "🎣",
+      "rarity": "Common",
+      "value": 29,
+      "experience": 35,
+      "size": "Small",
+      "preferredBait": [
+        "flies",
+        "worms"
+      ],
+      "caughtAt": "Peaceful Pond"
+    },
+    "fishingStreak": 3,
+    "lastStreakDate": "Fri Sep 26 2025",
+    "luckyBoxes": {},
+    "workers": {},
+    "lastWorkerCollection": null
+  },
+  "1099478869607723008-1339421101544964139": {
+    "level": 0,
+    "experience": 0,
+    "coins": 100,
+    "totalFish": 0,
+    "totalCasts": 2,
+    "fishCaught": {},
+    "currentRod": {
+      "id": "basic",
+      "name": "Basic Rod",
+      "emoji": "🎣",
+      "description": "A simple fishing rod for beginners",
+      "price": 0,
+      "catchRate": 35,
+      "rareBonus": 0,
+      "durability": 100
+    },
+    "ownedRods": [
+      "basic"
+    ],
+    "currentArea": "pond",
+    "currentBoat": {
+      "id": "none",
+      "name": "Shore Fishing",
+      "emoji": "🏖️",
+      "description": "Fishing from the shore",
+      "price": 0,
+      "areaBonus": 0,
+      "catchBonus": 0,
+      "unlockLevel": 0
+    },
+    "ownedBoats": [
+      "none"
+    ],
+    "baitInventory": {
+      "worms": 5
+    },
+    "currentBait": null,
+    "lastFished": 1758844031514,
+    "biggestCatch": null,
+    "fishingStreak": 0,
+    "lastStreakDate": null,
+    "luckyBoxes": {},
+    "workers": {},
+    "lastWorkerCollection": null
+  },
+  "1143231632409624578-1339421101544964139": {
+    "level": 0,
+    "experience": 2223,
+    "coins": 2465,
+    "totalFish": 113,
+    "totalCasts": 218,
+    "fishCaught": {
+      "trout": 5,
+      "bluegill": 6,
+      "catfish": 1,
+      "bass": 7,
+      "perch": 4,
+      "minnow": 2
+    },
+    "currentRod": {
+      "id": "carbon",
+      "name": "Carbon Fiber Rod",
+      "emoji": "⚡",
+      "description": "Modern carbon fiber construction",
+      "price": 500,
+      "catchRate": 55,
+      "rareBonus": 10,
+      "durability": 200
+    },
+    "ownedRods": [
+      "basic",
+      "carbon"
+    ],
+    "currentArea": "pond",
+    "currentBoat": {
+      "id": "none",
+      "name": "Shore Fishing",
+      "emoji": "🏖️",
+      "description": "Fishing from the shore",
+      "price": 0,
+      "areaBonus": 0,
+      "catchBonus": 0,
+      "unlockLevel": 0
+    },
+    "ownedBoats": [
+      "none"
+    ],
+    "baitInventory": {},
+    "currentBait": null,
+    "lastFished": 1760376851066,
+    "biggestCatch": {
+      "id": "trout",
+      "name": "Rainbow Trout",
+      "emoji": "🎣",
+      "rarity": "Common",
+      "value": 29,
+      "experience": 35,
+      "size": "Small",
+      "preferredBait": [
+        "flies",
+        "worms"
+      ],
+      "caughtAt": "Peaceful Pond"
+    },
+    "fishingStreak": 1,
+    "lastStreakDate": "Mon Oct 13 2025",
+    "luckyBoxes": {},
+    "workers": {},
+    "lastWorkerCollection": null
+  },
+  "1369360764468465785-1339421101544964139": {
+    "level": 0,
+    "experience": 30,
+    "coins": 125,
+    "totalFish": 1,
+    "totalCasts": 1,
+    "fishCaught": {
+      "trout": 1
+    },
+    "currentRod": {
+      "id": "basic",
+      "name": "Basic Rod",
+      "emoji": "🎣",
+      "description": "A simple fishing rod for beginners",
+      "price": 0,
+      "catchRate": 35,
+      "rareBonus": 0,
+      "durability": 100
+    },
+    "ownedRods": [
+      "basic"
+    ],
+    "currentArea": "pond",
+    "currentBoat": {
+      "id": "none",
+      "name": "Shore Fishing",
+      "emoji": "🏖️",
+      "description": "Fishing from the shore",
+      "price": 0,
+      "areaBonus": 0,
+      "catchBonus": 0,
+      "unlockLevel": 0
+    },
+    "ownedBoats": [
+      "none"
+    ],
+    "baitInventory": {
+      "worms": 5
+    },
+    "currentBait": null,
+    "lastFished": 1758474475223,
+    "biggestCatch": {
+      "id": "trout",
+      "name": "Rainbow Trout",
+      "emoji": "🎣",
+      "rarity": "Common",
+      "value": 25,
+      "experience": 30,
+      "size": "Small",
+      "preferredBait": [
+        "flies",
+        "worms"
+      ],
+      "caughtAt": "Peaceful Pond"
+    },
+    "fishingStreak": 1,
+    "lastStreakDate": "Sun Sep 21 2025",
+    "luckyBoxes": {},
+    "workers": {},
+    "lastWorkerCollection": null
+  },
+  "1137260756732215306-1339421101544964139": {
+    "level": 0,
+    "experience": 3801,
+    "coins": 2816,
+    "totalFish": 198,
+    "totalCasts": 517,
+    "fishCaught": {
+      "bluegill": 30,
+      "catfish": 27,
+      "trout": 32,
+      "bass": 37,
+      "perch": 32,
+      "minnow": 40
+    },
+    "currentRod": {
+      "id": "basic",
+      "name": "Basic Rod",
+      "emoji": "🎣",
+      "description": "A simple fishing rod for beginners",
+      "price": 0,
+      "catchRate": 35,
+      "rareBonus": 0,
+      "durability": 100
+    },
+    "ownedRods": [
+      "basic"
+    ],
+    "currentArea": "pond",
+    "currentBoat": {
+      "id": "none",
+      "name": "Shore Fishing",
+      "emoji": "🏖️",
+      "description": "Fishing from the shore",
+      "price": 0,
+      "areaBonus": 0,
+      "catchBonus": 0,
+      "unlockLevel": 0
+    },
+    "ownedBoats": [
+      "none"
+    ],
+    "baitInventory": {
+      "worms": 5
+    },
+    "currentBait": null,
+    "lastFished": 1758924228229,
+    "biggestCatch": {
+      "id": "trout",
+      "name": "Rainbow Trout",
+      "emoji": "🎣",
+      "rarity": "Common",
+      "value": 30,
+      "experience": 36,
+      "size": "Small",
+      "preferredBait": [
+        "flies",
+        "worms"
+      ],
+      "caughtAt": "Peaceful Pond"
+    },
+    "fishingStreak": 1,
+    "lastStreakDate": "Fri Sep 26 2025",
+    "luckyBoxes": {},
+    "workers": {},
+    "lastWorkerCollection": null
+  },
+  "942135360253755482-1339421101544964139": {
+    "level": 0,
+    "experience": 0,
+    "coins": 100,
+    "totalFish": 0,
+    "totalCasts": 1,
+    "fishCaught": {},
+    "currentRod": {
+      "id": "basic",
+      "name": "Basic Rod",
+      "emoji": "🎣",
+      "description": "A simple fishing rod for beginners",
+      "price": 0,
+      "catchRate": 35,
+      "rareBonus": 0,
+      "durability": 100
+    },
+    "ownedRods": [
+      "basic"
+    ],
+    "currentArea": "pond",
+    "currentBoat": {
+      "id": "none",
+      "name": "Shore Fishing",
+      "emoji": "🏖️",
+      "description": "Fishing from the shore",
+      "price": 0,
+      "areaBonus": 0,
+      "catchBonus": 0,
+      "unlockLevel": 0
+    },
+    "ownedBoats": [
+      "none"
+    ],
+    "baitInventory": {
+      "worms": 5
+    },
+    "currentBait": null,
+    "lastFished": 1758882760678,
+    "biggestCatch": null,
+    "fishingStreak": 0,
+    "lastStreakDate": null,
+    "luckyBoxes": {},
+    "workers": {},
+    "lastWorkerCollection": null
+  },
+  "1394379667141558362-1339421101544964139": {
+    "level": 0,
+    "experience": 45,
+    "coins": 136,
+    "totalFish": 2,
+    "totalCasts": 5,
+    "fishCaught": {
+      "bass": 1,
+      "trout": 1
+    },
+    "currentRod": {
+      "id": "basic",
+      "name": "Basic Rod",
+      "emoji": "🎣",
+      "description": "A simple fishing rod for beginners",
+      "price": 0,
+      "catchRate": 35,
+      "rareBonus": 0,
+      "durability": 100
+    },
+    "ownedRods": [
+      "basic"
+    ],
+    "currentArea": "pond",
+    "currentBoat": {
+      "id": "none",
+      "name": "Shore Fishing",
+      "emoji": "🏖️",
+      "description": "Fishing from the shore",
+      "price": 0,
+      "areaBonus": 0,
+      "catchBonus": 0,
+      "unlockLevel": 0
+    },
+    "ownedBoats": [
+      "none"
+    ],
+    "baitInventory": {
+      "worms": 5
+    },
+    "currentBait": null,
+    "lastFished": 1759776208491,
+    "biggestCatch": {
+      "id": "trout",
+      "name": "Rainbow Trout",
+      "emoji": "🎣",
+      "rarity": "Common",
+      "value": 23,
+      "experience": 27,
+      "size": "Small",
+      "preferredBait": [
+        "flies",
+        "worms"
+      ],
+      "caughtAt": "Peaceful Pond"
+    },
+    "fishingStreak": 1,
+    "lastStreakDate": "Mon Oct 06 2025",
+    "luckyBoxes": {},
+    "workers": {},
+    "lastWorkerCollection": null
+  }
+}
