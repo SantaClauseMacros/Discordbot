@@ -536,5 +536,50 @@
     "luckyBoxes": {},
     "workers": {},
     "lastWorkerCollection": null
+  },
+  "1320151781816143995-1339421101544964139": {
+    "coins": 110,
+    "experience": 5,
+    "currentRod": {
+      "id": "basic_rod",
+      "name": "Basic Rod",
+      "emoji": "🎣",
+      "catchRate": 50,
+      "rareBonus": 0,
+      "price": 0,
+      "description": "A simple fishing rod"
+    },
+    "ownedRods": [
+      "basic_rod"
+    ],
+    "currentBoat": {
+      "id": "basic_boat",
+      "name": "Rowboat",
+      "speedBonus": 0
+    },
+    "ownedBoats": [
+      "basic_boat"
+    ],
+    "currentArea": "pond",
+    "currentBait": null,
+    "baitInventory": {},
+    "fishCaught": {
+      "bass": 1
+    },
+    "totalFish": 1,
+    "totalCasts": 3,
+    "lastFished": 1762047945362,
+    "fishingStreak": 1,
+    "lastStreakDate": "Sat Nov 01 2025",
+    "biggestCatch": {
+      "id": "bass",
+      "name": "Bass",
+      "emoji": "🐟",
+      "value": 10,
+      "experience": 5,
+      "rarity": "Common",
+      "size": "Small",
+      "caughtAt": "Pond"
+    }
   }
 }

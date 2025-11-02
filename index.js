@@ -517,6 +517,331 @@ function checkMessageBasedAchievements(userId, guildId, message) {
 
 const simulator = require("./simulator.js");
 
+// Fishing Game Data
+let fishingGameData = {};
+
+try {
+  fishingGameData = JSON.parse(fs.readFileSync("fishing.json", "utf8"));
+} catch (err) {
+  fishingGameData = {};
+  fs.writeFileSync("fishing.json", JSON.stringify(fishingGameData));
+}
+
+function saveFishingData(userKey, data) {
+  fishingGameData[userKey] = data;
+  fs.writeFileSync("fishing.json", JSON.stringify(fishingGameData, null, 2));
+}
+
+function getFishingData(userKey) {
+  if (!fishingGameData[userKey]) {
+    fishingGameData[userKey] = {
+      coins: 100,
+      experience: 0,
+      currentRod: { id: "basic_rod", ...fishingRods["basic_rod"] },
+      ownedRods: ["basic_rod"],
+      currentBoat: { id: "basic_boat", name: "Rowboat", speedBonus: 0 },
+      ownedBoats: ["basic_boat"],
+      currentArea: "pond",
+      currentBait: null,
+      baitInventory: {},
+      fishCaught: {},
+      totalFish: 0,
+      totalCasts: 0,
+      lastFished: 0,
+      fishingStreak: 0,
+      lastStreakDate: null,
+      biggestCatch: null,
+    };
+  }
+  return fishingGameData[userKey];
+}
+
+const fishingRods = {
+  basic_rod: {
+    name: "Basic Rod",
+    emoji: "🎣",
+    catchRate: 50,
+    rareBonus: 0,
+    price: 0,
+    description: "A simple fishing rod",
+  },
+  sturdy_rod: {
+    name: "Sturdy Rod",
+    emoji: "🎣",
+    catchRate: 65,
+    rareBonus: 5,
+    price: 500,
+    description: "A more reliable rod",
+  },
+  pro_rod: {
+    name: "Pro Rod",
+    emoji: "🎣",
+    catchRate: 75,
+    rareBonus: 10,
+    price: 2000,
+    description: "For serious fishermen",
+  },
+  master_rod: {
+    name: "Master Rod",
+    emoji: "🎣",
+    catchRate: 85,
+    rareBonus: 20,
+    price: 10000,
+    description: "Top tier fishing equipment",
+  },
+  legendary_rod: {
+    name: "Legendary Rod",
+    emoji: "✨",
+    catchRate: 95,
+    rareBonus: 35,
+    price: 50000,
+    description: "The ultimate fishing rod",
+  },
+};
+
+const fishingAreas = {
+  pond: {
+    id: "pond",
+    name: "Pond",
+    emoji: "🏞️",
+    unlockLevel: 0,
+    fishMultiplier: 1,
+    rareBonus: 0,
+    travelCost: 0,
+    description: "A peaceful pond",
+  },
+  lake: {
+    id: "lake",
+    name: "Lake",
+    emoji: "🌊",
+    unlockLevel: 5,
+    fishMultiplier: 1.5,
+    rareBonus: 5,
+    travelCost: 100,
+    description: "A vast lake",
+  },
+  ocean: {
+    id: "ocean",
+    name: "Ocean",
+    emoji: "🌊",
+    unlockLevel: 15,
+    fishMultiplier: 2,
+    rareBonus: 15,
+    travelCost: 500,
+    description: "The deep ocean",
+  },
+  deep_sea: {
+    id: "deep_sea",
+    name: "Deep Sea",
+    emoji: "🌊",
+    unlockLevel: 30,
+    fishMultiplier: 3,
+    rareBonus: 30,
+    travelCost: 2000,
+    description: "Mysterious depths",
+  },
+};
+
+const fishTypes = {
+  bass: {
+    id: "bass",
+    name: "Bass",
+    emoji: "🐟",
+    value: 10,
+    experience: 5,
+    rarity: "Common",
+    size: "Small",
+  },
+  trout: {
+    id: "trout",
+    name: "Trout",
+    emoji: "🐟",
+    value: 15,
+    experience: 8,
+    rarity: "Common",
+    size: "Small",
+  },
+  salmon: {
+    id: "salmon",
+    name: "Salmon",
+    emoji: "🐠",
+    value: 30,
+    experience: 15,
+    rarity: "Uncommon",
+    size: "Medium",
+  },
+  tuna: {
+    id: "tuna",
+    name: "Tuna",
+    emoji: "🐠",
+    value: 50,
+    experience: 25,
+    rarity: "Uncommon",
+    size: "Medium",
+  },
+  swordfish: {
+    id: "swordfish",
+    name: "Swordfish",
+    emoji: "🗡️",
+    value: 100,
+    experience: 50,
+    rarity: "Rare",
+    size: "Large",
+  },
+  marlin: {
+    id: "marlin",
+    name: "Marlin",
+    emoji: "🐟",
+    value: 200,
+    experience: 100,
+    rarity: "Rare",
+    size: "Large",
+  },
+  shark: {
+    id: "shark",
+    name: "Shark",
+    emoji: "🦈",
+    value: 500,
+    experience: 250,
+    rarity: "Epic",
+    size: "Huge",
+  },
+  whale: {
+    id: "whale",
+    name: "Whale",
+    emoji: "🐋",
+    value: 1000,
+    experience: 500,
+    rarity: "Epic",
+    size: "Huge",
+  },
+  golden_fish: {
+    id: "golden_fish",
+    name: "Golden Fish",
+    emoji: "🏆",
+    value: 2500,
+    experience: 1000,
+    rarity: "Legendary",
+    size: "Medium",
+  },
+  kraken: {
+    id: "kraken",
+    name: "Kraken",
+    emoji: "🐙",
+    value: 10000,
+    experience: 5000,
+    rarity: "Mythical",
+    size: "Colossal",
+  },
+};
+
+const baitTypes = {
+  worm: { id: "worm", name: "Worm", emoji: "🪱", catchBonus: 5, price: 5 },
+  lure: { id: "lure", name: "Lure", emoji: "🎣", catchBonus: 10, price: 15 },
+  super_bait: {
+    id: "super_bait",
+    name: "Super Bait",
+    emoji: "✨",
+    catchBonus: 20,
+    price: 50,
+  },
+};
+
+function simulateFishing(fishingData) {
+  const rod = fishingData.currentRod;
+  const area = fishingAreas[fishingData.currentArea];
+  let catchRate = rod.catchRate;
+
+  if (fishingData.currentBait) {
+    const bait = baitTypes[fishingData.currentBait];
+    catchRate += bait.catchBonus;
+  }
+
+  const roll = Math.random() * 100;
+
+  if (roll > catchRate) {
+    return { caught: false };
+  }
+
+  // Determine rarity
+  const rarityRoll = Math.random() * 100;
+  let rarity = "Common";
+  const rareBonus = rod.rareBonus + area.rareBonus;
+
+  if (rarityRoll < 1 + rareBonus * 0.1) rarity = "Mythical";
+  else if (rarityRoll < 5 + rareBonus * 0.3) rarity = "Legendary";
+  else if (rarityRoll < 15 + rareBonus * 0.5) rarity = "Epic";
+  else if (rarityRoll < 35 + rareBonus) rarity = "Rare";
+  else if (rarityRoll < 60) rarity = "Uncommon";
+
+  // Get random fish of that rarity
+  const fishPool = Object.values(fishTypes).filter((f) => f.rarity === rarity);
+  const fish =
+    fishPool[Math.floor(Math.random() * fishPool.length)] || fishTypes.bass;
+
+  return { caught: true, fish, sizeVariation: (Math.random() - 0.5) * 0.4 };
+}
+
+function getRarityEmoji(rarity) {
+  const emojis = {
+    Common: "⚪",
+    Uncommon: "🟢",
+    Rare: "🔵",
+    Epic: "🟣",
+    Legendary: "🟡",
+    Mythical: "🔴",
+  };
+  return emojis[rarity] || "⚪";
+}
+
+function getRarestCatch(fishingData) {
+  const rarityOrder = [
+    "Common",
+    "Uncommon",
+    "Rare",
+    "Epic",
+    "Legendary",
+    "Mythical",
+  ];
+  let rarest = "None";
+  let rarestLevel = -1;
+
+  for (const fishId of Object.keys(fishingData.fishCaught)) {
+    const fish = fishTypes[fishId];
+    if (fish) {
+      const level = rarityOrder.indexOf(fish.rarity);
+      if (level > rarestLevel) {
+        rarestLevel = level;
+        rarest = `${fish.emoji} ${fish.name}`;
+      }
+    }
+  }
+
+  return rarest;
+}
+
+function countRareFish(fishingData) {
+  let count = 0;
+  for (const fishId of Object.keys(fishingData.fishCaught)) {
+    const fish = fishTypes[fishId];
+    if (
+      fish &&
+      (fish.rarity === "Rare" ||
+        fish.rarity === "Epic" ||
+        fish.rarity === "Legendary" ||
+        fish.rarity === "Mythical")
+    ) {
+      count += fishingData.fishCaught[fishId];
+    }
+  }
+  return count;
+}
+
+function processWorkerIncome(fishingData) {
+  // Placeholder for future worker system
+  return fishingData;
+}
+
 const token =
   "MTQwOTkyNDQ0OTM1NjA5MTQ1Mg.Glv25D.5gohRHFrgtUix3LTv1CTHrP4RHfU2nGIP_2VN";
 
@@ -532,7 +857,7 @@ const client = new Client({
   restTimeOffset: 0,
   failIfNotExists: false,
   presence: {
-    activities: [{ name: `Skull`, type: ActivityType.Playing }],
+    activities: [{ name: `Fling Ladder`, type: ActivityType.Playing }],
     status: "online",
   },
 });
@@ -599,13 +924,13 @@ client.once("clientReady", async () => {
 
   setInterval(() => {
     const activities = [
-      { name: `Skull`, type: ActivityType.Playing },
+      { name: `Fling Ladder`, type: ActivityType.Playing },
       {
-        name: `${client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0)} gamers`,
+        name: `${client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0)} climbers`,
         type: ActivityType.Watching,
       },
       {
-        name: `${client.guilds.cache.size} gaming communities`,
+        name: `${client.guilds.cache.size} ladders`,
         type: ActivityType.Competing,
       },
     ];
@@ -626,133 +951,171 @@ client.once("clientReady", async () => {
 
   updateMemberCountChannels();
 
-  // Register slash commands
+  // Register slash commands globally
   const commands = [
     // General Commands
     new SlashCommandBuilder()
-      .setName('help')
-      .setDescription('Display the bot\'s help menu'),
+      .setName("help")
+      .setDescription("Display the bot's help menu"),
     new SlashCommandBuilder()
-      .setName('ping')
-      .setDescription('Check bot latency'),
+      .setName("ping")
+      .setDescription("Check bot latency"),
     new SlashCommandBuilder()
-      .setName('rules')
-      .setDescription('Display server rules'),
+      .setName("rules")
+      .setDescription("Display server rules"),
     new SlashCommandBuilder()
-      .setName('avatar')
-      .setDescription('Display user avatar')
-      .addUserOption(option =>
-        option.setName('user')
-          .setDescription('User to view avatar')
-          .setRequired(false)),
-    
+      .setName("avatar")
+      .setDescription("Display user avatar")
+      .addUserOption((option) =>
+        option
+          .setName("user")
+          .setDescription("User to view avatar")
+          .setRequired(false),
+      ),
+    new SlashCommandBuilder()
+      .setName("servericon")
+      .setDescription("Display server icon"),
+
     // Leveling System
     new SlashCommandBuilder()
-      .setName('level')
-      .setDescription('View level and XP stats')
-      .addUserOption(option =>
-        option.setName('user')
-          .setDescription('User to view stats')
-          .setRequired(false)),
+      .setName("level")
+      .setDescription("View level and XP stats")
+      .addUserOption((option) =>
+        option
+          .setName("user")
+          .setDescription("User to view stats")
+          .setRequired(false),
+      ),
     new SlashCommandBuilder()
-      .setName('leaderboard')
-      .setDescription('View server leaderboard'),
+      .setName("leaderboard")
+      .setDescription("View server leaderboard"),
     new SlashCommandBuilder()
-      .setName('achievements')
-      .setDescription('View achievements')
-      .addUserOption(option =>
-        option.setName('user')
-          .setDescription('User to view achievements')
-          .setRequired(false)),
-    
+      .setName("achievements")
+      .setDescription("View achievements")
+      .addUserOption((option) =>
+        option
+          .setName("user")
+          .setDescription("User to view achievements")
+          .setRequired(false),
+      ),
+
     // Simulator Commands
+    new SlashCommandBuilder().setName("fish").setDescription("Go fishing!"),
     new SlashCommandBuilder()
-      .setName('fish')
-      .setDescription('Go fishing!'),
+      .setName("mine")
+      .setDescription("Mine for ores and gems!"),
+    new SlashCommandBuilder().setName("farm").setDescription("Harvest crops!"),
     new SlashCommandBuilder()
-      .setName('mine')
-      .setDescription('Mine for ores and gems!'),
+      .setName("profile")
+      .setDescription("View your simulator profile"),
     new SlashCommandBuilder()
-      .setName('farm')
-      .setDescription('Harvest crops!'),
+      .setName("fishstats")
+      .setDescription("View fishing statistics")
+      .addUserOption((option) =>
+        option
+          .setName("user")
+          .setDescription("User to view stats")
+          .setRequired(false),
+      ),
     new SlashCommandBuilder()
-      .setName('profile')
-      .setDescription('View your simulator profile'),
+      .setName("fishinventory")
+      .setDescription("View your fishing inventory"),
     new SlashCommandBuilder()
-      .setName('fishstats')
-      .setDescription('View fishing statistics')
-      .addUserOption(option =>
-        option.setName('user')
-          .setDescription('User to view stats')
-          .setRequired(false)),
+      .setName("mineinventory")
+      .setDescription("View your mining inventory"),
     new SlashCommandBuilder()
-      .setName('areas')
-      .setDescription('View fishing areas'),
+      .setName("farminventory")
+      .setDescription("View your farming inventory"),
     new SlashCommandBuilder()
-      .setName('travel')
-      .setDescription('Travel to a fishing area')
-      .addStringOption(option =>
-        option.setName('area')
-          .setDescription('Area to travel to')
+      .setName("fishstore")
+      .setDescription("View the fishing rod store"),
+    new SlashCommandBuilder()
+      .setName("minestore")
+      .setDescription("View the pickaxe store"),
+    new SlashCommandBuilder()
+      .setName("farmstore")
+      .setDescription("View the hoe store"),
+    new SlashCommandBuilder()
+      .setName("work")
+      .setDescription("Work for coins and XP"),
+    new SlashCommandBuilder()
+      .setName("trade")
+      .setDescription("Trade with another user")
+      .addUserOption((option) =>
+        option
+          .setName("user")
+          .setDescription("User to trade with")
+          .setRequired(true)
+      ),
+    new SlashCommandBuilder()
+      .setName("daily")
+      .setDescription("Claim your daily coins reward"),
+    new SlashCommandBuilder()
+      .setName("beg")
+      .setDescription("Beg for some coins"),
+    new SlashCommandBuilder()
+      .setName("crime")
+      .setDescription("Commit a crime for coins (risky!)"),
+    new SlashCommandBuilder()
+      .setName("search")
+      .setDescription("Search a location for coins")
+      .addStringOption((option) =>
+        option
+          .setName("location")
+          .setDescription("Where to search")
           .setRequired(true)
           .addChoices(
-            { name: 'Pond', value: 'pond' },
-            { name: 'Lake', value: 'lake' },
-            { name: 'River', value: 'river' },
-            { name: 'Ocean', value: 'ocean' },
-            { name: 'Deep Sea', value: 'deep_sea' }
-          )),
-    
-    // Fishing Equipment
-    new SlashCommandBuilder()
-      .setName('fishstore')
-      .setDescription('View the fishing rod store'),
-    new SlashCommandBuilder()
-      .setName('baitshop')
-      .setDescription('View available baits'),
-    new SlashCommandBuilder()
-      .setName('boats')
-      .setDescription('View boat shop'),
-    
+            { name: "Trash Can", value: "trash" },
+            { name: "Park Bench", value: "bench" },
+            { name: "Mailbox", value: "mailbox" },
+            { name: "Couch", value: "couch" },
+            { name: "Street", value: "street" }
+          )
+      ),
+
     // Gaming Commands
     new SlashCommandBuilder()
-      .setName('8ball')
-      .setDescription('Ask the magic 8-ball a question')
-      .addStringOption(option =>
-        option.setName('question')
-          .setDescription('Your question')
-          .setRequired(true)),
+      .setName("8ball")
+      .setDescription("Ask the magic 8-ball a question")
+      .addStringOption((option) =>
+        option
+          .setName("question")
+          .setDescription("Your question")
+          .setRequired(true),
+      ),
+    new SlashCommandBuilder().setName("coinflip").setDescription("Flip a coin"),
     new SlashCommandBuilder()
-      .setName('coinflip')
-      .setDescription('Flip a coin'),
-    new SlashCommandBuilder()
-      .setName('dice')
-      .setDescription('Roll a die')
-      .addIntegerOption(option =>
-        option.setName('sides')
-          .setDescription('Number of sides (2-100)')
+      .setName("dice")
+      .setDescription("Roll a die")
+      .addIntegerOption((option) =>
+        option
+          .setName("sides")
+          .setDescription("Number of sides (2-100)")
           .setRequired(false)
           .setMinValue(2)
-          .setMaxValue(100)),
+          .setMaxValue(100),
+      ),
     new SlashCommandBuilder()
-      .setName('rps')
-      .setDescription('Play rock paper scissors')
-      .addStringOption(option =>
-        option.setName('choice')
-          .setDescription('Your choice')
+      .setName("rps")
+      .setDescription("Play rock paper scissors")
+      .addStringOption((option) =>
+        option
+          .setName("choice")
+          .setDescription("Your choice")
           .setRequired(true)
           .addChoices(
-            { name: 'Rock', value: 'rock' },
-            { name: 'Paper', value: 'paper' },
-            { name: 'Scissors', value: 'scissors' }
-          )),
+            { name: "Rock", value: "rock" },
+            { name: "Paper", value: "paper" },
+            { name: "Scissors", value: "scissors" },
+          ),
+      ),
   ];
 
   try {
     await client.application.commands.set(commands);
-    console.log('Slash commands registered successfully!');
+    console.log("Slash commands registered successfully!");
   } catch (error) {
-    console.error('Error registering slash commands:', error);
+    console.error("Error registering slash commands:", error);
   }
 });
 
@@ -901,7 +1264,7 @@ client.on("guildMemberAdd", async (member) => {
         .setColor("#FF4500")
         .setTitle("New Member!")
         .setDescription(
-          `Welcome to Flamin' Hot Games, ${member}! We hope you enjoy your stay :)`,
+          `Welcome to Fling Ladder, ${member}! We hope you enjoy your stay :)`,
         )
         .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
         .setTimestamp()
@@ -2016,8 +2379,7 @@ client.on("messageCreate", async (message) => {
     // Prestige System (Everyone)
     helpEmbed.addFields({
       name: "💎 **Prestige System**",
-      value:
-        "```\n!prestige          - Reset for bonuses```",
+      value: "```\n!prestige          - Reset for bonuses```",
       inline: false,
     });
 
@@ -5187,6 +5549,66 @@ client.on("messageCreate", async (message) => {
     message.channel.send({ embeds: [embed] });
   }
 
+  // WORK Command
+  if (command === "work") {
+    const result = await simulator.performWork(message.author.id, message.guild.id);
+
+    if (!result.success) {
+      return message.reply(result.message);
+    }
+
+    const embed = new EmbedBuilder()
+      .setColor("#FFD700")
+      .setTitle("💼 Work Complete!")
+      .setDescription(`You worked as a **${result.jobName}**!`)
+      .addFields(
+        { name: "💰 Coins Earned", value: `${result.coins}`, inline: true },
+        { name: "✨ XP Gained", value: `${result.xp}`, inline: true },
+        { name: "📊 Work Level", value: `${result.level}`, inline: true }
+      )
+      .setTimestamp();
+
+    message.channel.send({ embeds: [embed] });
+  }
+
+  // TRADE Command
+  if (command === "trade") {
+    const target = message.mentions.users.first();
+
+    if (!target) {
+      const tradeEmbed = new EmbedBuilder()
+        .setColor("#FF69B4")
+        .setTitle("💱 Trading System")
+        .setDescription("Trade items with other players!")
+        .addFields(
+          { name: "Usage", value: "`!trade @user`", inline: false },
+          { name: "Example", value: "`!trade @JohnDoe`", inline: false }
+        )
+        .setFooter({ text: "Trading system coming soon!" });
+
+      return message.channel.send({ embeds: [tradeEmbed] });
+    }
+
+    if (target.id === message.author.id) {
+      return message.reply("You can't trade with yourself!");
+    }
+
+    if (target.bot) {
+      return message.reply("You can't trade with bots!");
+    }
+
+    const tradeEmbed = new EmbedBuilder()
+      .setColor("#FFA500")
+      .setTitle("💱 Trading Coming Soon!")
+      .setDescription(`Trading with ${target} will be available in a future update!`)
+      .addFields(
+        { name: "📌 Note", value: "The full trading system is under development.", inline: false }
+      )
+      .setTimestamp();
+
+    message.channel.send({ embeds: [tradeEmbed] });
+  }
+
   // Advanced Fishing Game System
   if (command === "cast" || command === "f") {
     const userKey = `${message.author.id}-${message.guild.id}`;
@@ -5935,7 +6357,11 @@ client.on("messageCreate", async (message) => {
         `You sold **${totalFish} fish** for a total of **${totalValue} coins**!`,
       )
       .addFields(
-        { name: "🏦 Total Coins", value: `${fishingData.coins} coins`, inline: true },
+        {
+          name: "🏦 Total Coins",
+          value: `${fishingData.coins} coins`,
+          inline: true,
+        },
         { name: "🐟 Fish Sold", value: `${totalFish} fish`, inline: true },
         { name: "💵 Value", value: `${totalValue} coins`, inline: true },
       )
@@ -6089,7 +6515,9 @@ client.on("messageCreate", async (message) => {
     const boatsEmbed = new EmbedBuilder()
       .setColor("#1E90FF")
       .setTitle("🚤 Boat Shop")
-      .setDescription("Boats increase your fishing efficiency across all areas!")
+      .setDescription(
+        "Boats increase your fishing efficiency across all areas!",
+      )
       .setFooter({ text: "Use !buyboat <boat_name> to purchase" })
       .setTimestamp();
 
@@ -6097,244 +6525,765 @@ client.on("messageCreate", async (message) => {
   }
 });
 
-// Handle slash command interactions
-client.on('interactionCreate', async (interaction) => {
+// Handle button interactions for reaction roles
+client.on("interactionCreate", async (interaction) => {
+  if (interaction.isButton()) {
+    const customId = interaction.customId;
+
+    // Handle reaction roles
+    if (customId.startsWith("role-")) {
+      const roleId = customId.replace("role-", "");
+      let role = null;
+
+      // Handle special predefined roles
+      if (roleId === "announcement") {
+        role = interaction.guild.roles.cache.find(r => r.name === "Announcement Ping");
+      } else if (roleId === "giveaway") {
+        role = interaction.guild.roles.cache.find(r => r.name === "Giveaway Ping");
+      } else {
+        role = interaction.guild.roles.cache.get(roleId);
+      }
+
+      if (!role) {
+        return interaction.reply({
+          content: "This role no longer exists!",
+          ephemeral: true,
+        });
+      }
+
+      // Toggle role
+      if (interaction.member.roles.cache.has(role.id)) {
+        await interaction.member.roles.remove(role);
+        await interaction.reply({
+          content: `Removed the ${role.name} role!`,
+          ephemeral: true,
+        });
+      } else {
+        await interaction.member.roles.add(role);
+        await interaction.reply({
+          content: `You now have the ${role.name} role!`,
+          ephemeral: true,
+        });
+      }
+    }
+
+    return;
+  }
+
   if (!interaction.isChatInputCommand()) return;
 
   const { commandName, options } = interaction;
 
   try {
     // General Commands
-    if (commandName === 'help') {
+    if (commandName === "help") {
       // Reuse the help embed logic
-      const isOwner = interaction.user.id === interaction.guild.ownerId ||
-        interaction.member.roles.cache.some(r => r.name === 'Owner');
-      const isAdmin = isOwner || interaction.member.roles.cache.some(r => r.name === 'Admin');
-      const isMod = isAdmin || interaction.member.roles.cache.some(r => r.name === 'Moderator');
-      const isDev = interaction.member.roles.cache.some(r => r.name === 'Developer');
+      const isOwner =
+        interaction.user.id === interaction.guild.ownerId ||
+        interaction.member.roles.cache.some((r) => r.name === "Owner");
+      const isAdmin =
+        isOwner ||
+        interaction.member.roles.cache.some((r) => r.name === "Admin");
+      const isMod =
+        isAdmin ||
+        interaction.member.roles.cache.some((r) => r.name === "Moderator");
+      const isDev = interaction.member.roles.cache.some(
+        (r) => r.name === "Developer",
+      );
 
       const helpEmbed = new EmbedBuilder()
-        .setColor('#FF4500')
-        .setTitle('🔥 Flamin\' Hot Games Bot - Command Help')
-        .setDescription('**Welcome!** Use slash commands (/) for the best experience!')
+        .setColor("#FF4500")
+        .setTitle("🔥 Flamin' Hot Games Bot - Command Help")
+        .setDescription(
+          "**Welcome!** Use slash commands (/) for the best experience!",
+        )
         .setThumbnail(client.user.displayAvatarURL())
         .addFields(
-          { name: 'ℹ️ General', value: '`/help` `/ping` `/rules` `/avatar`', inline: false },
-          { name: '🔥 Leveling', value: '`/level` `/leaderboard` `/achievements`', inline: false },
-          { name: '🎣 Fishing', value: '`/fish` `/fishstats` `/areas` `/travel`', inline: false },
-          { name: '⛏️ Mining', value: '`/mine` `/mineinventory`', inline: false },
-          { name: '🌾 Farming', value: '`/farm` `/farminventory`', inline: false },
-          { name: '🎮 Games', value: '`/8ball` `/coinflip` `/dice` `/rps`', inline: false }
+          {
+            name: "ℹ️ General",
+            value: "`/help` `/ping` `/rules` `/avatar`",
+            inline: false,
+          },
+          {
+            name: "🔥 Leveling",
+            value: "`/level` `/leaderboard` `/achievements`",
+            inline: false,
+          },
+          {
+            name: "🎣 Fishing",
+            value: "`/fish` `/fishstats` `/areas` `/travel`",
+            inline: false,
+          },
+          {
+            name: "⛏️ Mining",
+            value: "`/mine` `/mineinventory`",
+            inline: false,
+          },
+          {
+            name: "🌾 Farming",
+            value: "`/farm` `/farminventory`",
+            inline: false,
+          },
+          {
+            name: "🎮 Games",
+            value: "`/8ball` `/coinflip` `/dice` `/rps`",
+            inline: false,
+          },
         )
-        .setFooter({ text: '💡 Slash commands are faster and easier to use!' });
+        .setFooter({ text: "💡 Slash commands are faster and easier to use!" });
 
       await interaction.reply({ embeds: [helpEmbed], ephemeral: true });
-    }
-
-    else if (commandName === 'ping') {
+    } else if (commandName === "ping") {
       const embed = new EmbedBuilder()
-        .setColor('#00FF00')
-        .setTitle('🏓 Pong!')
-        .addFields(
-          { name: 'API Latency', value: `${Math.round(client.ws.ping)}ms`, inline: true }
-        )
+        .setColor("#00FF00")
+        .setTitle("🏓 Pong!")
+        .addFields({
+          name: "API Latency",
+          value: `${Math.round(client.ws.ping)}ms`,
+          inline: true,
+        })
         .setTimestamp();
       await interaction.reply({ embeds: [embed] });
-    }
-
-    else if (commandName === 'avatar') {
-      const target = options.getUser('user') || interaction.user;
+    } else if (commandName === "avatar") {
+      const target = options.getUser("user") || interaction.user;
       const avatarEmbed = new EmbedBuilder()
-        .setColor('#00FF00')
+        .setColor("#00FF00")
         .setTitle(`${target.username}'s Avatar`)
         .setImage(target.displayAvatarURL({ size: 1024, dynamic: true }));
       await interaction.reply({ embeds: [avatarEmbed] });
-    }
-
-    else if (commandName === 'level') {
-      const target = options.getUser('user') || interaction.user;
+    } else if (commandName === "level") {
+      const target = options.getUser("user") || interaction.user;
       const userKey = `${target.id}-${interaction.guild.id}`;
-      const userData = userLevels.get(userKey) || { xp: 0, level: 1, totalXP: 0, messages: 0 };
+      const userData = userLevels.get(userKey) || {
+        xp: 0,
+        level: 1,
+        totalXP: 0,
+        messages: 0,
+      };
 
       const embed = new EmbedBuilder()
-        .setColor('#FF4500')
-        .setTitle('🔥 User Level & Experience')
+        .setColor("#FF4500")
+        .setTitle("🔥 User Level & Experience")
         .setDescription(`**${target.username}**'s progress:`)
         .addFields(
-          { name: '🏆 Level', value: `${userData.level}`, inline: true },
-          { name: '✨ Current XP', value: `${userData.xp}/${calculateXPForLevel(userData.level + 1) - calculateXPForLevel(userData.level)}`, inline: true },
-          { name: '💫 Total XP', value: `${userData.totalXP}`, inline: true }
+          { name: "🏆 Level", value: `${userData.level}`, inline: true },
+          {
+            name: "✨ Current XP",
+            value: `${userData.xp}/${calculateXPForLevel(userData.level + 1) - calculateXPForLevel(userData.level)}`,
+            inline: true,
+          },
+          { name: "💫 Total XP", value: `${userData.totalXP}`, inline: true },
         )
         .setThumbnail(target.displayAvatarURL({ dynamic: true }))
         .setTimestamp();
 
       await interaction.reply({ embeds: [embed] });
-    }
-
-    else if (commandName === 'fish') {
-      const result = await simulator.performFish(interaction.user.id, interaction.guild.id);
+    } else if (commandName === "fish") {
+      const result = await simulator.performFish(
+        interaction.user.id,
+        interaction.guild.id,
+      );
       if (!result.success) {
         return interaction.reply({ content: result.message, ephemeral: true });
       }
 
       const embed = new EmbedBuilder()
-        .setColor('#00BFFF')
-        .setTitle('🎣 Fishing Success!')
-        .setDescription(`You caught a **${result.fish.name}** ${result.fish.emoji}!`)
+        .setColor("#00BFFF")
+        .setTitle("🎣 Fishing Success!")
+        .setDescription(
+          `You caught a **${result.fish.name}** ${result.fish.emoji}!`,
+        )
         .addFields(
-          { name: '💰 Coins Earned', value: `${result.coins}`, inline: true },
-          { name: '✨ XP Gained', value: `${result.xp}`, inline: true },
-          { name: '📊 Level', value: `${result.level}`, inline: true }
+          { name: "💰 Coins Earned", value: `${result.coins}`, inline: true },
+          { name: "✨ XP Gained", value: `${result.xp}`, inline: true },
+          { name: "📊 Level", value: `${result.level}`, inline: true },
         )
         .setTimestamp();
 
       await interaction.reply({ embeds: [embed] });
-    }
-
-    else if (commandName === 'mine') {
-      const result = await simulator.performMine(interaction.user.id, interaction.guild.id);
+    } else if (commandName === "mine") {
+      const result = await simulator.performMine(
+        interaction.user.id,
+        interaction.guild.id,
+      );
       if (!result.success) {
         return interaction.reply({ content: result.message, ephemeral: true });
       }
 
       const embed = new EmbedBuilder()
-        .setColor('#8B4513')
-        .setTitle('⛏️ Mining Success!')
+        .setColor("#8B4513")
+        .setTitle("⛏️ Mining Success!")
         .setDescription(`You mined **${result.ore.name}** ${result.ore.emoji}!`)
         .addFields(
-          { name: '💰 Coins Earned', value: `${result.coins}`, inline: true },
-          { name: '✨ XP Gained', value: `${result.xp}`, inline: true },
-          { name: '📊 Level', value: `${result.level}`, inline: true }
+          { name: "💰 Coins Earned", value: `${result.coins}`, inline: true },
+          { name: "✨ XP Gained", value: `${result.xp}`, inline: true },
+          { name: "📊 Level", value: `${result.level}`, inline: true },
         )
         .setTimestamp();
 
       await interaction.reply({ embeds: [embed] });
-    }
-
-    else if (commandName === 'farm') {
-      const result = await simulator.performFarm(interaction.user.id, interaction.guild.id);
+    } else if (commandName === "farm") {
+      const result = await simulator.performFarm(
+        interaction.user.id,
+        interaction.guild.id,
+      );
       if (!result.success) {
         return interaction.reply({ content: result.message, ephemeral: true });
       }
 
       const embed = new EmbedBuilder()
-        .setColor('#228B22')
-        .setTitle('🌾 Farming Success!')
-        .setDescription(`You harvested **${result.crop.name}** ${result.crop.emoji}!`)
+        .setColor("#228B22")
+        .setTitle("🌾 Farming Success!")
+        .setDescription(
+          `You harvested **${result.crop.name}** ${result.crop.emoji}!`,
+        )
         .addFields(
-          { name: '💰 Coins Earned', value: `${result.coins}`, inline: true },
-          { name: '✨ XP Gained', value: `${result.xp}`, inline: true },
-          { name: '📊 Level', value: `${result.level}`, inline: true }
+          { name: "💰 Coins Earned", value: `${result.coins}`, inline: true },
+          { name: "✨ XP Gained", value: `${result.xp}`, inline: true },
+          { name: "📊 Level", value: `${result.level}`, inline: true },
         )
         .setTimestamp();
 
       await interaction.reply({ embeds: [embed] });
-    }
-
-    else if (commandName === 'profile') {
-      const userData = simulator.getUserData(interaction.user.id, interaction.guild.id);
+    } else if (commandName === "profile") {
+      const userData = simulator.getUserData(
+        interaction.user.id,
+        interaction.guild.id,
+      );
 
       const embed = new EmbedBuilder()
-        .setColor('#FF4500')
+        .setColor("#FF4500")
         .setTitle(`🔥 ${interaction.user.username}'s Profile`)
         .addFields(
-          { name: '💰 Coins', value: `${userData.coins}`, inline: true },
-          { name: '💥 Prestige', value: `${userData.prestige}`, inline: true },
-          { name: '🎣 Fishing Level', value: `${userData.fishingLevel}`, inline: true },
-          { name: '⛏️ Mining Level', value: `${userData.miningLevel}`, inline: true },
-          { name: '🌾 Farming Level', value: `${userData.farmingLevel}`, inline: true }
+          { name: "💰 Coins", value: `${userData.coins}`, inline: true },
+          { name: "💥 Prestige", value: `${userData.prestige}`, inline: true },
+          {
+            name: "🎣 Fishing Level",
+            value: `${userData.fishingLevel}`,
+            inline: true,
+          },
+          {
+            name: "⛏️ Mining Level",
+            value: `${userData.miningLevel}`,
+            inline: true,
+          },
+          {
+            name: "🌾 Farming Level",
+            value: `${userData.farmingLevel}`,
+            inline: true,
+          },
         )
         .setThumbnail(interaction.user.displayAvatarURL({ dynamic: true }))
         .setTimestamp();
 
       await interaction.reply({ embeds: [embed] });
-    }
-
-    else if (commandName === '8ball') {
-      const question = options.getString('question');
+    } else if (commandName === "8ball") {
+      const question = options.getString("question");
       const responses = [
-        '🎱 It is certain', '🎱 Without a doubt', '🎱 Yes definitely',
-        '🎱 Reply hazy, try again', '🎱 Ask again later',
-        '🎱 Don\'t count on it', '🎱 My reply is no', '🎱 Very doubtful'
+        "🎱 It is certain",
+        "🎱 Without a doubt",
+        "🎱 Yes definitely",
+        "🎱 Reply hazy, try again",
+        "🎱 Ask again later",
+        "🎱 Don't count on it",
+        "🎱 My reply is no",
+        "🎱 Very doubtful",
       ];
       const answer = responses[Math.floor(Math.random() * responses.length)];
 
       const embed = new EmbedBuilder()
-        .setColor('#9932CC')
-        .setTitle('🎱 Magic 8-Ball')
+        .setColor("#9932CC")
+        .setTitle("🎱 Magic 8-Ball")
         .addFields(
-          { name: 'Question', value: question, inline: false },
-          { name: 'Answer', value: answer, inline: false }
+          { name: "Question", value: question, inline: false },
+          { name: "Answer", value: answer, inline: false },
         )
         .setTimestamp();
 
       await interaction.reply({ embeds: [embed] });
-    }
-
-    else if (commandName === 'coinflip') {
-      const result = Math.random() < 0.5 ? '🪙 **Heads!**' : '🪙 **Tails!**';
+    } else if (commandName === "coinflip") {
+      const result = Math.random() < 0.5 ? "🪙 **Heads!**" : "🪙 **Tails!**";
       const embed = new EmbedBuilder()
-        .setColor('#FFD700')
-        .setTitle('🪙 Coin Flip')
+        .setColor("#FFD700")
+        .setTitle("🪙 Coin Flip")
         .setDescription(result)
         .setTimestamp();
 
       await interaction.reply({ embeds: [embed] });
-    }
-
-    else if (commandName === 'dice') {
-      const sides = options.getInteger('sides') || 6;
+    } else if (commandName === "dice") {
+      const sides = options.getInteger("sides") || 6;
       const result = Math.floor(Math.random() * sides) + 1;
 
       const embed = new EmbedBuilder()
-        .setColor('#FF6B6B')
-        .setTitle('🎲 Dice Roll')
+        .setColor("#FF6B6B")
+        .setTitle("🎲 Dice Roll")
         .setDescription(`You rolled a **${result}** on a ${sides}-sided die!`)
         .setTimestamp();
 
       await interaction.reply({ embeds: [embed] });
-    }
-
-    else if (commandName === 'rps') {
-      const userChoice = options.getString('choice');
-      const choices = ['rock', 'paper', 'scissors'];
+    } else if (commandName === "rps") {
+      const userChoice = options.getString("choice");
+      const choices = ["rock", "paper", "scissors"];
       const botChoice = choices[Math.floor(Math.random() * choices.length)];
-      
-      let result = '';
-      let color = '#FFFF00';
+
+      let result = "";
+      let color = "#FFFF00";
 
       if (userChoice === botChoice) {
-        result = 'It\'s a tie! 🤝';
+        result = "It's a tie! 🤝";
       } else if (
-        (userChoice === 'rock' && botChoice === 'scissors') ||
-        (userChoice === 'paper' && botChoice === 'rock') ||
-        (userChoice === 'scissors' && botChoice === 'paper')
+        (userChoice === "rock" && botChoice === "scissors") ||
+        (userChoice === "paper" && botChoice === "rock") ||
+        (userChoice === "scissors" && botChoice === "paper")
       ) {
-        result = 'You win! 🎉';
-        color = '#00FF00';
+        result = "You win! 🎉";
+        color = "#00FF00";
       } else {
-        result = 'You lose! 😔';
-        color = '#FF0000';
+        result = "You lose! 😔";
+        color = "#FF0000";
       }
 
-      const emojiMap = { rock: '🪨', paper: '📄', scissors: '✂️' };
+      const emojiMap = { rock: "🪨", paper: "📄", scissors: "✂️" };
 
       const embed = new EmbedBuilder()
         .setColor(color)
-        .setTitle('🎮 Rock Paper Scissors')
+        .setTitle("🎮 Rock Paper Scissors")
         .addFields(
-          { name: 'Your Choice', value: `${emojiMap[userChoice]} ${userChoice}`, inline: true },
-          { name: 'Bot Choice', value: `${emojiMap[botChoice]} ${botChoice}`, inline: true },
-          { name: 'Result', value: result, inline: false }
+          {
+            name: "Your Choice",
+            value: `${emojiMap[userChoice]} ${userChoice}`,
+            inline: true,
+          },
+          {
+            name: "Bot Choice",
+            value: `${emojiMap[botChoice]} ${botChoice}`,
+            inline: true,
+          },
+          { name: "Result", value: result, inline: false },
+        )
+        .setTimestamp();
+
+      await interaction.reply({ embeds: [embed] });
+    } else if (commandName === "rules") {
+      const rulesEmbed = new EmbedBuilder()
+        .setColor("#FF4500")
+        .setTitle("🔥 Fling Ladder Community Rules")
+        .setDescription("Please follow these rules to keep our community fun:")
+        .addFields(
+          {
+            name: "1. Be Respectful",
+            value:
+              "Treat all members with respect. No harassment, hate speech, or bullying.",
+          },
+          {
+            name: "2. No Spamming",
+            value: "Don't spam messages, emotes, or mentions.",
+          },
+          {
+            name: "3. Use Appropriate Channels",
+            value: "Post content in the right channels.",
+          },
+          {
+            name: "4. Keep Content Appropriate",
+            value: "Keep all content family-friendly.",
+          },
+          {
+            name: "5. Follow Discord TOS",
+            value: "Adhere to Discord's Terms of Service.",
+          },
+          {
+            name: "6. Listen to Staff",
+            value: "Follow instructions from server moderators and admins.",
+          },
+        )
+        .setTimestamp();
+
+      await interaction.reply({ embeds: [rulesEmbed] });
+    } else if (commandName === "servericon") {
+      const iconEmbed = new EmbedBuilder()
+        .setColor("#00FF00")
+        .setTitle(`${interaction.guild.name}'s Icon`)
+        .setImage(interaction.guild.iconURL({ size: 1024, dynamic: true }));
+
+      await interaction.reply({ embeds: [iconEmbed] });
+    } else if (commandName === "leaderboard") {
+      const guildUsers = Array.from(userLevels.entries())
+        .filter(([key]) => key.endsWith(`-${interaction.guild.id}`))
+        .map(([key, data]) => ({
+          userId: key.split("-")[0],
+          ...data,
+        }))
+        .sort((a, b) => b.totalXP - a.totalXP)
+        .slice(0, 10);
+
+      if (guildUsers.length === 0) {
+        return interaction.reply({
+          content: "No users found in the leaderboard yet!",
+          ephemeral: true,
+        });
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor("#FF4500")
+        .setTitle("🏆 Server Leaderboard")
+        .setDescription("Here are the top users in this community:")
+        .setTimestamp();
+
+      let description = "";
+      for (let i = 0; i < guildUsers.length; i++) {
+        const user = guildUsers[i];
+        try {
+          const member = await interaction.guild.members
+            .fetch(user.userId)
+            .catch(() => null);
+          const username = member ? member.user.username : "Unknown User";
+          const medal =
+            i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}.`;
+          description += `${medal} **${username}** - Level ${user.level} (${user.totalXP} XP)\n`;
+        } catch (error) {
+          console.error("Error fetching user:", error);
+        }
+      }
+
+      embed.setDescription(description);
+      await interaction.reply({ embeds: [embed] });
+    } else if (commandName === "fishinventory") {
+      const userData = simulator.getUserData(
+        interaction.user.id,
+        interaction.guild.id,
+      );
+
+      const embed = new EmbedBuilder()
+        .setColor("#00BFFF")
+        .setTitle("🎣 Fishing Inventory")
+        .setDescription(
+          `Current Rod: **${simulator.tools[userData.fishingRod].name}**\n\n**Fish Caught:**`,
+        );
+
+      if (Object.keys(userData.fishingInventory).length === 0) {
+        embed.setDescription(embed.data.description + "\nNone yet!");
+      } else {
+        for (const [fishName, count] of Object.entries(
+          userData.fishingInventory,
+        )) {
+          const fish = Object.values(simulator.fishTypes).find(
+            (f) => f.name === fishName,
+          );
+          if (fish) {
+            embed.addFields({
+              name: `${fish.emoji} ${fishName}`,
+              value: `x${count}`,
+              inline: true,
+            });
+          }
+        }
+      }
+
+      await interaction.reply({ embeds: [embed] });
+    } else if (commandName === "mineinventory") {
+      const userData = simulator.getUserData(
+        interaction.user.id,
+        interaction.guild.id,
+      );
+
+      const embed = new EmbedBuilder()
+        .setColor("#8B4513")
+        .setTitle("⛏️ Mining Inventory")
+        .setDescription(
+          `Current Pickaxe: **${simulator.tools[userData.miningPickaxe].name}**\n\n**Ores Mined:**`,
+        );
+
+      if (Object.keys(userData.miningInventory).length === 0) {
+        embed.setDescription(embed.data.description + "\nNone yet!");
+      } else {
+        for (const [oreName, count] of Object.entries(
+          userData.miningInventory,
+        )) {
+          const ore = Object.values(simulator.oreTypes).find(
+            (o) => o.name === oreName,
+          );
+          if (ore) {
+            embed.addFields({
+              name: `${ore.emoji} ${oreName}`,
+              value: `x${count}`,
+              inline: true,
+            });
+          }
+        }
+      }
+
+      await interaction.reply({ embeds: [embed] });
+    } else if (commandName === "farminventory") {
+      const userData = simulator.getUserData(
+        interaction.user.id,
+        interaction.guild.id,
+      );
+
+      const embed = new EmbedBuilder()
+        .setColor("#228B22")
+        .setTitle("🌾 Farming Inventory")
+        .setDescription(
+          `Current Hoe: **${simulator.tools[userData.farmingHoe].name}**\n\n**Crops Harvested:**`,
+        );
+
+      if (Object.keys(userData.farmingInventory).length === 0) {
+        embed.setDescription(embed.data.description + "\nNone yet!");
+      } else {
+        for (const [cropName, count] of Object.entries(
+          userData.farmingInventory,
+        )) {
+          const crop = Object.values(simulator.cropTypes).find(
+            (c) => c.name === cropName,
+          );
+          if (crop) {
+            embed.addFields({
+              name: `${crop.emoji} ${cropName}`,
+              value: `x${count}`,
+              inline: true,
+            });
+          }
+        }
+      }
+
+      await interaction.reply({ embeds: [embed] });
+    } else if (commandName === "fishstore") {
+      const embed = new EmbedBuilder()
+        .setColor("#00BFFF")
+        .setTitle("🏪 Fishing Store")
+        .setDescription("Available fishing rods:");
+
+      for (const [id, tool] of Object.entries(simulator.tools)) {
+        if (tool.type === "fishing") {
+          embed.addFields({
+            name: `${tool.name} (${tool.rarity})`,
+            value: `💰 ${tool.price} coins | Power: ${tool.power} | Multiplier: ${tool.multiplier}x`,
+            inline: false,
+          });
+        }
+      }
+
+      await interaction.reply({ embeds: [embed] });
+    } else if (commandName === "minestore") {
+      const embed = new EmbedBuilder()
+        .setColor("#8B4513")
+        .setTitle("🏪 Mining Store")
+        .setDescription("Available pickaxes:");
+
+      for (const [id, tool] of Object.entries(simulator.tools)) {
+        if (tool.type === "mining") {
+          embed.addFields({
+            name: `${tool.name} (${tool.rarity})`,
+            value: `💰 ${tool.price} coins | Power: ${tool.power} | Multiplier: ${tool.multiplier}x`,
+            inline: false,
+          });
+        }
+      }
+
+      await interaction.reply({ embeds: [embed] });
+    } else if (commandName === "farmstore") {
+      const embed = new EmbedBuilder()
+        .setColor("#228B22")
+        .setTitle("🏪 Farming Store")
+        .setDescription("Available hoes:");
+
+      for (const [id, tool] of Object.entries(simulator.tools)) {
+        if (tool.type === "farming") {
+          embed.addFields({
+            name: `${tool.name} (${tool.rarity})`,
+            value: `💰 ${tool.price} coins | Power: ${tool.power} | Multiplier: ${tool.multiplier}x`,
+            inline: false,
+          });
+        }
+      }
+
+      await interaction.reply({ embeds: [embed] });
+    } else if (commandName === "fishstats") {
+      const target = options.getUser("user") || interaction.user;
+      const userData = simulator.getUserData(target.id, interaction.guild.id);
+
+      const embed = new EmbedBuilder()
+        .setColor("#4169E1")
+        .setTitle(`🎣 ${target.username}'s Fishing Stats`)
+        .addFields(
+          {
+            name: "📊 Fishing Level",
+            value: `${userData.fishingLevel}`,
+            inline: true,
+          },
+          {
+            name: "✨ Fishing XP",
+            value: `${userData.fishingXP}`,
+            inline: true,
+          },
+          { name: "💰 Coins", value: `${userData.coins}`, inline: true },
+        )
+        .setThumbnail(target.displayAvatarURL({ dynamic: true }))
+        .setTimestamp();
+
+      await interaction.reply({ embeds: [embed] });
+    } else if (commandName === "achievements") {
+      const target = options.getUser("user") || interaction.user;
+      const userKey = `${target.id}-${interaction.guild.id}`;
+      const userAchievements = achievements.get(userKey) || [];
+
+      if (userAchievements.length === 0) {
+        return interaction.reply({
+          content: `${target.username} hasn't unlocked any achievements yet!`,
+          ephemeral: true,
+        });
+      }
+
+      const achievementFields = userAchievements
+        .map((achievementId) => {
+          const achievement = achievementList[achievementId];
+          return achievement
+            ? {
+                name: `${achievement.emoji} ${achievement.name}`,
+                value: `${achievement.description} (+${achievement.xp} XP)`,
+                inline: true,
+              }
+            : null;
+        })
+        .filter(Boolean);
+
+      const embed = new EmbedBuilder()
+        .setColor("#FFD700")
+        .setTitle(`🏆 ${target.username}'s Achievements`)
+        .setDescription(
+          `**${userAchievements.length}/${Object.keys(achievementList).length}** achievements unlocked`,
+        )
+        .addFields(achievementFields)
+        .setThumbnail(target.displayAvatarURL({ dynamic: true }))
+        .setTimestamp();
+
+      await interaction.reply({ embeds: [embed] });
+    } else if (commandName === "work") {
+      const result = simulator.performWork(interaction.user.id, interaction.guild.id);
+
+      if (!result.success) {
+        return interaction.reply({
+          content: result.message,
+          ephemeral: true,
+        });
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor("#FFD700")
+        .setTitle("💼 Work Complete!")
+        .setDescription(`You worked as a **${result.jobName}**!`)
+        .addFields(
+          { name: "💰 Coins Earned", value: `${result.coins}`, inline: true },
+          { name: "✨ XP Gained", value: `${result.xp}`, inline: true },
+          { name: "📊 Work Level", value: `${result.level}`, inline: true },
+        )
+        .setTimestamp();
+
+      await interaction.reply({ embeds: [embed] });
+    } else if (commandName === "trade") {
+      const target = options.getUser("user");
+
+      if (target.id === interaction.user.id) {
+        return interaction.reply({
+          content: "You can't trade with yourself!",
+          ephemeral: true,
+        });
+      }
+
+      if (target.bot) {
+        return interaction.reply({
+          content: "You can't trade with bots!",
+          ephemeral: true,
+        });
+      }
+
+      const tradeEmbed = new EmbedBuilder()
+        .setColor("#FFA500")
+        .setTitle("💱 Trading Coming Soon!")
+        .setDescription(`Trading with ${target} will be available in a future update!`)
+        .addFields(
+          { name: "📌 Note", value: "The full trading system is under development.", inline: false }
+        )
+        .setTimestamp();
+
+      await interaction.reply({ embeds: [tradeEmbed] });
+    } else if (commandName === "daily") {
+      const result = simulator.claimDaily(interaction.user.id, interaction.guild.id);
+
+      if (!result.success) {
+        return interaction.reply({ content: result.message, ephemeral: true });
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor("#FFD700")
+        .setTitle("🎁 Daily Reward Claimed!")
+        .setDescription(`You received **${result.coins}** coins!`)
+        .addFields(
+          { name: "💰 Total Coins", value: `${result.totalCoins}`, inline: true },
+          { name: "🔥 Streak", value: `${result.streak} days`, inline: true }
+        )
+        .setFooter({ text: "Come back tomorrow for another reward!" })
+        .setTimestamp();
+
+      await interaction.reply({ embeds: [embed] });
+    } else if (commandName === "beg") {
+      const result = simulator.beg(interaction.user.id, interaction.guild.id);
+
+      if (!result.success) {
+        return interaction.reply({ content: result.message, ephemeral: true });
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor(result.coins > 0 ? "#00FF00" : "#FF6B6B")
+        .setTitle(result.coins > 0 ? "💰 Someone Gave You Coins!" : "😔 No Luck")
+        .setDescription(result.message)
+        .addFields(
+          { name: "💵 Received", value: `${result.coins} coins`, inline: true },
+          { name: "🏦 Total Coins", value: `${result.totalCoins}`, inline: true }
+        )
+        .setTimestamp();
+
+      await interaction.reply({ embeds: [embed] });
+    } else if (commandName === "crime") {
+      const result = simulator.crime(interaction.user.id, interaction.guild.id);
+
+      if (!result.success) {
+        return interaction.reply({ content: result.message, ephemeral: true });
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor(result.caught ? "#FF0000" : "#00FF00")
+        .setTitle(result.caught ? "🚔 Caught!" : "💰 Crime Success!")
+        .setDescription(result.message)
+        .addFields(
+          { name: result.caught ? "💸 Lost" : "💵 Earned", value: `${Math.abs(result.coins)} coins`, inline: true },
+          { name: "🏦 Total Coins", value: `${result.totalCoins}`, inline: true }
+        )
+        .setTimestamp();
+
+      await interaction.reply({ embeds: [embed] });
+    } else if (commandName === "search") {
+      const location = options.getString("location");
+      const result = simulator.search(interaction.user.id, interaction.guild.id, location);
+
+      if (!result.success) {
+        return interaction.reply({ content: result.message, ephemeral: true });
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor("#4169E1")
+        .setTitle(`🔍 Searched ${result.locationName}`)
+        .setDescription(result.message)
+        .addFields(
+          { name: "💰 Found", value: `${result.coins} coins`, inline: true },
+          { name: "🏦 Total Coins", value: `${result.totalCoins}`, inline: true }
         )
         .setTimestamp();
 
       await interaction.reply({ embeds: [embed] });
     }
-
   } catch (error) {
-    console.error('Error handling slash command:', error);
-    const errorMessage = 'There was an error executing this command!';
+    console.error("Error handling slash command:", error);
+    const errorMessage = "There was an error executing this command!";
     if (interaction.deferred || interaction.replied) {
       await interaction.followUp({ content: errorMessage, ephemeral: true });
     } else {
@@ -6343,227 +7292,185 @@ client.on('interactionCreate', async (interaction) => {
   }
 });
 
-client.login(token);
-    const userKey = `${message.author.id}-${message.guild.id}`;
-    const fishingData = getFishingData(userKey);
+// Handle button interactions for tickets
+client.on("interactionCreate", async (interaction) => {
+  if (!interaction.isButton()) return;
 
-    const baitEmbed = new EmbedBuilder()
-      .setColor("#8B4513")
-      .setTitle("🪱 Bait Shop")
-      .setDescription(
-        `**Your Coins:** ${fishingData.coins}\n**Current Bait:** ${fishingData.currentBait ? baitTypes[fishingData.currentBait].emoji + " " + baitTypes[fishingData.currentBait].name : "None"}`,
-      )
-      .setFooter({ text: "Use !buybait <bait_name> [quantity] to purchase" })
-      .setTimestamp();
+  if (interaction.customId === "create_ticket") {
+    const ticketId = ++counters.ticketCount;
+    saveCounters();
 
-    for (const [baitId, bait] of Object.entries(baitTypes)) {
-      const owned = fishingData.baitInventory[baitId] || 0;
-      baitEmbed.addFields({
-        name: `${bait.emoji} ${bait.name}`,
-        value: `${bait.description}\n🎣 Catch Bonus: +${bait.catchBonus}%\n💎 Rare Bonus: +${bait.rareBonus}%\n💰 Price: ${bait.price} coins (x${bait.quantity})\n📦 Owned: ${owned}`,
-        inline: true,
-      });
-    }
+    const ticketChannelName = `ticket-${ticketId}`;
 
-    message.channel.send({ embeds: [baitEmbed] });
-  }
-
-  if (command === "buybait") {
-    const baitName = args[0]?.toLowerCase();
-    const quantity = parseInt(args[1]) || 1;
-
-    if (!baitName) {
-      return message.reply(
-        "Please specify a bait to buy! Use `!baitshop` to see available baits.",
-      );
-    }
-
-    const userKey = `${message.author.id}-${message.guild.id}`;
-    const fishingData = getFishingData(userKey);
-
-    const bait = Object.values(baitTypes).find(
-      (b) => b.name.toLowerCase().includes(baitName) || b.id === baitName,
-    );
-
-    if (!bait) {
-      return message.reply(
-        "Bait not found! Use `!baitshop` to see available baits.",
-      );
-    }
-
-    const totalCost = bait.price * quantity;
-
-    if (fishingData.coins < totalCost) {
-      return message.reply({
-        embeds: [
-          new EmbedBuilder()
-            .setColor("#FF0000")
-            .setTitle("💸 Insufficient Funds")
-            .setDescription(
-              `You need **${totalCost}** coins but only have **${fishingData.coins}** coins.`,
-            ),
+    try {
+      const ticketChannel = await interaction.guild.channels.create({
+        name: ticketChannelName,
+        type: ChannelType.GuildText,
+        permissionOverwrites: [
+          {
+            id: interaction.guild.roles.everyone,
+            deny: [PermissionsBitField.Flags.ViewChannel],
+          },
+          {
+            id: interaction.user.id,
+            allow: [
+              PermissionsBitField.Flags.ViewChannel,
+              PermissionsBitField.Flags.SendMessages,
+              PermissionsBitField.Flags.ReadMessageHistory,
+            ],
+          },
+          {
+            id: client.user.id,
+            allow: [
+              PermissionsBitField.Flags.ViewChannel,
+              PermissionsBitField.Flags.SendMessages,
+              PermissionsBitField.Flags.ManageChannels,
+            ],
+          },
         ],
       });
-    }
 
-    fishingData.coins -= totalCost;
-    fishingData.baitInventory[bait.id] =
-      (fishingData.baitInventory[bait.id] || 0) + bait.quantity * quantity;
-    saveFishingData(userKey, fishingData);
+      tickets.set(ticketChannelName, {
+        userId: interaction.user.id,
+        status: "open",
+        claimedBy: null,
+        channelId: ticketChannel.id,
+      });
+      saveTickets();
 
-    const buyEmbed = new EmbedBuilder()
-      .setColor("#00FF00")
-      .setTitle("🛍️ Bait Purchased!")
-      .setDescription(
-        `You bought **${quantity}x ${bait.name}** ${bait.emoji} (${bait.quantity * quantity} uses)`,
-      )
-      .addFields(
-        { name: "💰 Cost", value: `${totalCost} coins`, inline: true },
-        {
-          name: "🏦 Remaining Coins",
-          value: `${fishingData.coins}`,
-          inline: true,
-        },
-        {
-          name: "📦 Total Owned",
-          value: `${fishingData.baitInventory[bait.id]}`,
-          inline: true,
-        },
-      )
-      .setTimestamp();
-
-    message.channel.send({ embeds: [buyEmbed] });
-  }
-
-  if (command === "usebait" || command === "bait") {
-    const baitName = args[0]?.toLowerCase();
-
-    if (!baitName) {
-      return message.reply(
-        "Please specify a bait to use, or `none` to unequip.\nUsage: `!usebait <bait_name>` or `!usebait none`",
+      db.run(
+        `INSERT INTO tickets (id, user_id, status) VALUES (?, ?, ?)`,
+        [ticketId, interaction.user.id, "open"],
+        (err) => {
+          if (err) console.error("Error inserting ticket:", err);
+        }
       );
-    }
 
-    const userKey = `${message.author.id}-${message.guild.id}`;
-    const fishingData = getFishingData(userKey);
+      const ticketEmbed = new EmbedBuilder()
+        .setColor("#00ff00")
+        .setTitle(`🎫 Support Ticket #${ticketId}`)
+        .setDescription(
+          `Welcome ${interaction.user}! Please describe your issue and a staff member will assist you shortly.`
+        )
+        .addFields(
+          { name: "Status", value: "🟢 Open", inline: true },
+          { name: "Created By", value: `${interaction.user}`, inline: true }
+        )
+        .setFooter({ text: "Our team will respond as soon as possible" })
+        .setTimestamp();
 
-    if (baitName === "none") {
-      fishingData.currentBait = null;
-      saveFishingData(userKey, fishingData);
-      return message.reply("You have unequipped your bait.");
-    }
-
-    const bait = Object.values(baitTypes).find(
-      (b) => b.name.toLowerCase().includes(baitName) || b.id === baitName,
-    );
-
-    if (!bait) {
-      return message.reply(
-        "Bait not found! Use `!baitshop` to see available baits.",
+      const closeButton = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("close_ticket")
+          .setLabel("Close Ticket")
+          .setStyle(ButtonStyle.Danger)
+          .setEmoji("🔒")
       );
-    }
 
-    if (!fishingData.baitInventory[bait.id] || fishingData.baitInventory[bait.id] <= 0) {
-      return message.reply({
-        embeds: [
-          new EmbedBuilder()
-            .setColor("#FF0000")
-            .setTitle("🪱 No Bait Available")
-            .setDescription(`You don't have any **${bait.name}** bait!`)
-            .addFields({
-              name: "💡 Tip",
-              value: "Use `!baitshop` to buy more bait.",
-            }),
-        ],
+      await ticketChannel.send({
+        embeds: [ticketEmbed],
+        components: [closeButton],
+      });
+
+      await interaction.reply({
+        content: `Ticket created! Please check ${ticketChannel}`,
+        ephemeral: true,
+      });
+
+      const logsChannel = interaction.guild.channels.cache.find(
+        (channel) => channel.name === "📝┃user-logs"
+      );
+
+      if (logsChannel) {
+        const logEmbed = new EmbedBuilder()
+          .setColor("#00FF00")
+          .setTitle("🎫 New Ticket Created")
+          .setDescription(`Ticket #${ticketId} created by ${interaction.user.tag}`)
+          .addFields(
+            { name: "Channel", value: `${ticketChannel}`, inline: true },
+            { name: "User ID", value: interaction.user.id, inline: true }
+          )
+          .setTimestamp();
+
+        await logsChannel.send({ embeds: [logEmbed] });
+      }
+    } catch (error) {
+      console.error("Error creating ticket:", error);
+      await interaction.reply({
+        content: "There was an error creating your ticket. Please try again later.",
+        ephemeral: true,
+      });
+    }
+  } else if (interaction.customId === "close_ticket") {
+    const ticketData = tickets.get(interaction.channel.name);
+
+    if (!ticketData) {
+      return interaction.reply({
+        content: "This is not a valid ticket channel.",
+        ephemeral: true,
       });
     }
 
-    fishingData.currentBait = bait.id;
-    saveFishingData(userKey, fishingData);
+    const hasPermission =
+      interaction.user.id === ticketData.userId ||
+      interaction.member.permissions.has(PermissionsBitField.Flags.ManageChannels);
 
-    const useBaitEmbed = new EmbedBuilder()
-      .setColor("#00FF00")
-      .setTitle("🪱 Bait Equipped!")
-      .setDescription(`You equipped the **${bait.name}** bait! ${bait.emoji}`)
-      .addFields(
-        { name: "🎣 Catch Bonus", value: `+${bait.catchBonus}%`, inline: true },
-        {
-          name: "💎 Rare Bonus",
-          value: `+${bait.rareBonus}%`,
-          inline: true,
-        },
-        {
-          name: "🎣 Remaining",
-          value: `${fishingData.baitInventory[bait.id]} uses`,
-          inline: true,
-        },
-      )
-      .setFooter({ text: "This bait will be used on your next cast." })
-      .setTimestamp();
+    if (!hasPermission) {
+      return interaction.reply({
+        content: "You don't have permission to close this ticket.",
+        ephemeral: true,
+      });
+    }
 
-    message.channel.send({ embeds: [useBaitEmbed] });
-  }
+    try {
+      ticketData.status = "closed";
+      tickets.set(interaction.channel.name, ticketData);
+      saveTickets();
 
-  if (command === "fishhelp") {
-    const fishHelpEmbed = new EmbedBuilder()
-      .setColor("#4169E1")
-      .setTitle("❓ Fishing Game Guide")
-      .setDescription("Welcome to the ultimate fishing experience!")
-      .setThumbnail(message.guild.iconURL())
-      .addFields(
-        {
-          name: "🎣 Core Fishing",
-          value:
-            "```\n!fish / !cast / !f     - Go fishing (5s cooldown)\n!fishstats [@user]     - View fishing profile\n!fishinventory         - View your fishing inventory\n!fishcollection        - View all your caught fish```",
-          inline: false,
-        },
-        {
-          name: "🗺️ Areas & Travel",
-          value:
-            "```\n!areas                 - View all fishing areas\n!travel <area>         - Travel to a fishing area```",
-          inline: false,
-        },
-        {
-          name: "🪱 Baits & Equipment",
-          value:
-            "```\n!baitshop              - View available baits\n!buybait <name> [qty]  - Buy bait\n!usebait <name>        - Equip bait (or 'none')\n!boats                 - View boat shop\n!buyboat <name>        - Buy a boat\n!equipboat <name>      - Equip a boat```",
-          inline: false,
-        },
-        {
-          name: "🏪 Shopping & Equipment",
-          value:
-            "```\n!fishstore             - View fishing rod store\n!buyrod <name>         - Buy a fishing rod\n!equiprod <name>       - Equip a fishing rod```",
-          inline: false,
-        },
-        {
-          name: "💰 Fish Economy",
-          value:
-            "```\n!sellfish <name> [qty] - Sell specific fish for coins\n!sellall               - Sell all your fish at once```",
-          inline: false,
-        },
-        {
-          name: "🎁 Lucky Boxes",
-          value:
-            "```\n!luckyboxes            - View lucky box shop\n!buybox <type> [qty]   - Buy lucky boxes\n!openbox <type>        - Open a lucky box\n  Types: basic, premium, legendary, mythical```",
-          inline: false,
-        },
-        {
-          name: "👷 Passive Workers",
-          value:
-            "```\n!workers               - View worker management\n!buyworker <type> [qty]- Hire fishing workers\n!collectworkers        - Collect passive income\n  Types: novice, experienced, master, legendary```",
-          inline: false,
-        },
-        {
-          name: "🏆 Leaderboards",
-          value:
-            "```\n!fishleaderboard [type] - View fishing leaderboards\n  Types: total, level, coins, rare```",
-          inline: false,
-        },
-      )
-      .setFooter({ text: "Use !fishhelp for detailed command information" })
-      .setTimestamp();
+      db.run(
+        `UPDATE tickets SET status = 'closed' WHERE user_id = ? AND status = 'open'`,
+        [ticketData.userId],
+        (err) => {
+          if (err) console.error("Error updating ticket status:", err);
+        }
+      );
 
-    message.channel.send({ embeds: [fishHelpEmbed] });
+      await interaction.reply({
+        content: "This ticket will be deleted in 5 seconds...",
+      });
+
+      setTimeout(async () => {
+        try {
+          await interaction.channel.delete();
+          tickets.delete(interaction.channel.name);
+          saveTickets();
+        } catch (error) {
+          console.error("Error deleting ticket channel:", error);
+        }
+      }, 5000);
+
+      const logsChannel = interaction.guild.channels.cache.find(
+        (channel) => channel.name === "📝┃user-logs"
+      );
+
+      if (logsChannel) {
+        const logEmbed = new EmbedBuilder()
+          .setColor("#FF0000")
+          .setTitle("🔒 Ticket Closed")
+          .setDescription(
+            `Ticket ${interaction.channel.name} was closed by ${interaction.user.tag}`
+          )
+          .setTimestamp();
+
+        await logsChannel.send({ embeds: [logEmbed] });
+      }
+    } catch (error) {
+      console.error("Error closing ticket:", error);
+      await interaction.followUp({
+        content: "There was an error closing this ticket.",
+        ephemeral: true,
+      });
+    }
   }
 });
 

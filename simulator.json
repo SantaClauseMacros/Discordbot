@@ -1,35 +1,40 @@
 {
   "1320151781816143995-1339421101544964139": {
-    "coins": 40,
+    "coins": 497,
     "fishingLevel": 1,
-    "fishingXP": 0,
-    "fishingInventory": {},
+    "fishingXP": 32,
+    "fishingInventory": {
+      "Salmon": 4,
+      "Tuna": 1
+    },
     "fishingRod": "basic_rod",
     "ownedFishingRods": [
       "basic_rod"
     ],
     "miningLevel": 1,
-    "miningXP": 14,
+    "miningXP": 58,
     "miningInventory": {
-      "Coal": 1,
-      "Iron": 1
+      "Coal": 2,
+      "Iron": 1,
+      "Gold": 1
     },
     "miningPickaxe": "basic_pickaxe",
     "ownedPickaxes": [
       "basic_pickaxe"
     ],
     "farmingLevel": 1,
-    "farmingXP": 6,
+    "farmingXP": 33,
     "farmingInventory": {
-      "Wheat": 1
+      "Wheat": 3,
+      "Corn": 1
     },
     "farmingHoe": "basic_hoe",
     "ownedHoes": [
       "basic_hoe"
     ],
-    "workLevel": 1,
-    "workXP": 0,
-    "lastWork": 0,
+    "workLevel": 2,
+    "workXP": 25,
+    "lastWork": 1762046712753,
     "pets": [
       {
         "id": "turtle_1762033181621",
@@ -63,14 +68,14 @@
     "activeEffects": [],
     "prestige": 0,
     "prestigeBonus": 1,
-    "lastFish": 0,
-    "lastMine": 1762033253159,
-    "lastFarm": 1762033262852,
-    "inTrade": false,
+    "lastFish": 1762047936148,
+    "lastMine": 1762046715817,
+    "lastFarm": 1762047857818,
+    "inTrade": true,
     "autoFarmExpiry": 0
   },
   "1099478869607723008-1339421101544964139": {
-    "coins": 508,
+    "coins": 528,
     "fishingLevel": 1,
     "fishingXP": 0,
     "fishingInventory": {},
@@ -79,9 +84,10 @@
       "basic_rod"
     ],
     "miningLevel": 1,
-    "miningXP": 4,
+    "miningXP": 14,
     "miningInventory": {
-      "Coal": 1
+      "Coal": 1,
+      "Iron": 1
     },
     "miningPickaxe": "basic_pickaxe",
     "ownedPickaxes": [
@@ -118,8 +124,88 @@
     "prestige": 0,
     "prestigeBonus": 1,
     "lastFish": 0,
-    "lastMine": 1762033255034,
+    "lastMine": 1762040242012,
     "lastFarm": 0,
+    "inTrade": false,
+    "autoFarmExpiry": 0
+  },
+  "925790728431497236-1339421101544964139": {
+    "coins": 1150,
+    "fishingLevel": 1,
+    "fishingXP": 0,
+    "fishingInventory": {},
+    "fishingRod": "basic_rod",
+    "ownedFishingRods": [
+      "basic_rod"
+    ],
+    "miningLevel": 1,
+    "miningXP": 0,
+    "miningInventory": {},
+    "miningPickaxe": "basic_pickaxe",
+    "ownedPickaxes": [
+      "basic_pickaxe"
+    ],
+    "farmingLevel": 1,
+    "farmingXP": 0,
+    "farmingInventory": {},
+    "farmingHoe": "basic_hoe",
+    "ownedHoes": [
+      "basic_hoe"
+    ],
+    "workLevel": 1,
+    "workXP": 75,
+    "lastWork": 1762040997705,
+    "pets": [],
+    "equippedPet": null,
+    "petIdCounter": 0,
+    "items": {},
+    "activeEffects": [],
+    "prestige": 0,
+    "prestigeBonus": 1,
+    "lastFish": 0,
+    "lastMine": 0,
+    "lastFarm": 0,
+    "inTrade": false,
+    "autoFarmExpiry": 0
+  },
+  "886398974456655892-1339421101544964139": {
+    "coins": 1012,
+    "fishingLevel": 1,
+    "fishingXP": 0,
+    "fishingInventory": {},
+    "fishingRod": "basic_rod",
+    "ownedFishingRods": [
+      "basic_rod"
+    ],
+    "miningLevel": 1,
+    "miningXP": 0,
+    "miningInventory": {},
+    "miningPickaxe": "basic_pickaxe",
+    "ownedPickaxes": [
+      "basic_pickaxe"
+    ],
+    "farmingLevel": 1,
+    "farmingXP": 6,
+    "farmingInventory": {
+      "Wheat": 1
+    },
+    "farmingHoe": "basic_hoe",
+    "ownedHoes": [
+      "basic_hoe"
+    ],
+    "workLevel": 1,
+    "workXP": 0,
+    "lastWork": 0,
+    "pets": [],
+    "equippedPet": null,
+    "petIdCounter": 0,
+    "items": {},
+    "activeEffects": [],
+    "prestige": 0,
+    "prestigeBonus": 1,
+    "lastFish": 0,
+    "lastMine": 0,
+    "lastFarm": 1762042317254,
     "inTrade": false,
     "autoFarmExpiry": 0
   }
