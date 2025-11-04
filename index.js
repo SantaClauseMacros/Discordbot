@@ -842,8 +842,7 @@ function processWorkerIncome(fishingData) {
   return fishingData;
 }
 
-const token =
-  "MTQwOTkyNDQ0OTM1NjA5MTQ1Mg.Glv25D.5gohRHFrgtUix3LTv1CTHrP4RHfU2nGIP_2VN";
+const token = "MTQwOTkyNDQ0OTM1NjA5MTQ1Mg.Glv25D.5gohRHFrgtUix3LTv1CTHrP4RHfU2nGIP_2VN";
 
 if (!token) {
   console.error("Error: DISCORD_BOT_TOKEN environment variable is not set!");
@@ -1071,6 +1070,44 @@ client.once("clientReady", async () => {
             { name: "Couch", value: "couch" },
             { name: "Street", value: "street" }
           )
+      ),
+
+    // Pet Commands
+    new SlashCommandBuilder()
+      .setName("hatch")
+      .setDescription("Hatch a pet from an egg")
+      .addStringOption((option) =>
+        option
+          .setName("egg")
+          .setDescription("Type of egg to hatch")
+          .setRequired(true)
+          .addChoices(
+            { name: "Common Egg (500 coins)", value: "common_egg" },
+            { name: "Epic Egg (2000 coins)", value: "epic_egg" },
+            { name: "Legendary Egg (5000 coins)", value: "legendary_egg" },
+            { name: "Mythic Egg (10000 coins)", value: "mythic_egg" }
+          )
+      ),
+    new SlashCommandBuilder()
+      .setName("feed")
+      .setDescription("Feed your pet")
+      .addIntegerOption((option) =>
+        option
+          .setName("petid")
+          .setDescription("ID of the pet to feed")
+          .setRequired(true)
+      ),
+    new SlashCommandBuilder()
+      .setName("pets")
+      .setDescription("View all your pets"),
+    new SlashCommandBuilder()
+      .setName("equippet")
+      .setDescription("Equip a pet")
+      .addIntegerOption((option) =>
+        option
+          .setName("petid")
+          .setDescription("ID of the pet to equip")
+          .setRequired(true)
       ),
 
     // Gaming Commands
@@ -7277,6 +7314,103 @@ client.on("interactionCreate", async (interaction) => {
           { name: "💰 Found", value: `${result.coins} coins`, inline: true },
           { name: "🏦 Total Coins", value: `${result.totalCoins}`, inline: true }
         )
+        .setTimestamp();
+
+      await interaction.reply({ embeds: [embed] });
+    } else if (commandName === "hatch") {
+      const eggType = options.getString("egg");
+      const result = simulator.hatchPet(interaction.user.id, interaction.guild.id, eggType);
+
+      if (!result.success) {
+        return interaction.reply({ content: result.message, ephemeral: true });
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor("#FFD700")
+        .setTitle("🥚 Pet Hatched!")
+        .setDescription(`You hatched a **${result.pet.name}**!`)
+        .addFields(
+          { name: "🏷️ Rarity", value: result.pet.rarity, inline: true },
+          { name: "📊 Level", value: `${result.pet.level}`, inline: true },
+          { name: "🆔 Pet ID", value: `${result.pet.id}`, inline: true },
+          { name: "💰 Remaining Coins", value: `${result.totalCoins}`, inline: true },
+          { name: "⚡ Boost", value: `${result.pet.boost.type}: ${result.pet.boost.value}x`, inline: true }
+        )
+        .setFooter({ text: `Use /feed ${result.pet.id} to feed your pet!` })
+        .setTimestamp();
+
+      await interaction.reply({ embeds: [embed] });
+    } else if (commandName === "feed") {
+      const petId = options.getInteger("petid");
+      const result = simulator.feedPet(interaction.user.id, interaction.guild.id, petId);
+
+      if (!result.success) {
+        return interaction.reply({ content: result.message, ephemeral: true });
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor(result.leveledUp ? "#FFD700" : "#00FF00")
+        .setTitle(result.leveledUp ? "🎉 Pet Leveled Up!" : "🍖 Pet Fed!")
+        .setDescription(`You fed **${result.pet.name}**!`)
+        .addFields(
+          { name: "😋 Hunger", value: `${result.pet.hunger}/100`, inline: true },
+          { name: "📊 Level", value: `${result.pet.level}`, inline: true },
+          { name: "✨ XP", value: `${result.pet.xp}/${simulator.calculateXPNeeded(result.pet.level)}`, inline: true },
+          { name: "💰 Remaining Coins", value: `${result.totalCoins}`, inline: true }
+        )
+        .setTimestamp();
+
+      if (result.leveledUp) {
+        embed.setFooter({ text: `Your pet is now level ${result.pet.level}! Boost increased!` });
+      }
+
+      await interaction.reply({ embeds: [embed] });
+    } else if (commandName === "pets") {
+      const result = simulator.viewPets(interaction.user.id, interaction.guild.id);
+
+      if (result.pets.length === 0) {
+        return interaction.reply({ 
+          content: "You don't have any pets yet! Use `/hatch` to get your first pet!", 
+          ephemeral: true 
+        });
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor("#9B59B6")
+        .setTitle("🐾 Your Pets")
+        .setDescription(`You have **${result.pets.length}** pet(s)`)
+        .addFields({ name: "💰 Total Coins", value: `${result.totalCoins}`, inline: false });
+
+      result.pets.forEach(pet => {
+        const isEquipped = pet.id === result.equippedPet ? "⭐" : "";
+        embed.addFields({
+          name: `${isEquipped} ${pet.name} (ID: ${pet.id})`,
+          value: `**Rarity:** ${pet.rarity}\n**Level:** ${pet.level}\n**Hunger:** ${pet.hunger}/100\n**Boost:** ${pet.boost.type} ${pet.boost.value}x`,
+          inline: true
+        });
+      });
+
+      embed.setFooter({ text: "Use /equippet <id> to equip a pet | Use /feed <id> to feed a pet" });
+
+      await interaction.reply({ embeds: [embed] });
+    } else if (commandName === "equippet") {
+      const petId = options.getInteger("petid");
+      const result = simulator.equipPet(interaction.user.id, interaction.guild.id, petId);
+
+      if (!result.success) {
+        return interaction.reply({ content: result.message, ephemeral: true });
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor("#00FF00")
+        .setTitle("⭐ Pet Equipped!")
+        .setDescription(result.message)
+        .addFields(
+          { name: "🐾 Pet", value: result.pet.name, inline: true },
+          { name: "📊 Level", value: `${result.pet.level}`, inline: true },
+          { name: "⚡ Boost", value: `${result.pet.boost.type}: ${result.pet.boost.value}x`, inline: true }
+        )
+        .setFooter({ text: "Your equipped pet boosts will apply to your activities!" })
         .setTimestamp();
 
       await interaction.reply({ embeds: [embed] });

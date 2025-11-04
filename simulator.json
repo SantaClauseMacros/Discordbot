@@ -1,10 +1,10 @@
 {
   "1320151781816143995-1339421101544964139": {
-    "coins": 497,
+    "coins": 582,
     "fishingLevel": 1,
-    "fishingXP": 32,
+    "fishingXP": 37,
     "fishingInventory": {
-      "Salmon": 4,
+      "Salmon": 5,
       "Tuna": 1
     },
     "fishingRod": "basic_rod",
@@ -33,8 +33,8 @@
       "basic_hoe"
     ],
     "workLevel": 2,
-    "workXP": 25,
-    "lastWork": 1762046712753,
+    "workXP": 60,
+    "lastWork": 1762051521246,
     "pets": [
       {
         "id": "turtle_1762033181621",
@@ -68,7 +68,7 @@
     "activeEffects": [],
     "prestige": 0,
     "prestigeBonus": 1,
-    "lastFish": 1762047936148,
+    "lastFish": 1762051505474,
     "lastMine": 1762046715817,
     "lastFarm": 1762047857818,
     "inTrade": true,
@@ -169,10 +169,12 @@
     "autoFarmExpiry": 0
   },
   "886398974456655892-1339421101544964139": {
-    "coins": 1012,
+    "coins": 1022,
     "fishingLevel": 1,
-    "fishingXP": 0,
-    "fishingInventory": {},
+    "fishingXP": 5,
+    "fishingInventory": {
+      "Salmon": 1
+    },
     "fishingRod": "basic_rod",
     "ownedFishingRods": [
       "basic_rod"
@@ -203,7 +205,7 @@
     "activeEffects": [],
     "prestige": 0,
     "prestigeBonus": 1,
-    "lastFish": 0,
+    "lastFish": 1762051738645,
     "lastMine": 0,
     "lastFarm": 1762042317254,
     "inTrade": false,

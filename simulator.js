@@ -131,6 +131,14 @@ const petTypes = {
   turtle: { name: '🐢 Turtle', rarity: 'Common', boost: { type: 'cooldown', value: 0.95 }, hunger: 100, xp: 0, level: 1 },
 };
 
+// Egg types for hatching pets
+const eggTypes = {
+  common_egg: { name: 'Common Egg', emoji: '🥚', price: 500, pets: ['turtle'] },
+  epic_egg: { name: 'Epic Egg', emoji: '💎', price: 2000, pets: ['crystal_dog'] },
+  legendary_egg: { name: 'Legendary Egg', emoji: '🔥', price: 5000, pets: ['ember_cat'] },
+  mythic_egg: { name: 'Mythic Egg', emoji: '✨', price: 10000, pets: ['phoenix'] },
+};
+
 // Potions
 const potions = {
   hot_sauce: { name: 'Hot Sauce Potion', emoji: '🌶️', effect: 'coins', multiplier: 2, duration: 600000, price: 500 },
@@ -400,7 +408,8 @@ function claimDaily(userId, guildId) {
   return {
     success: true,
     coins: totalCoins,
-    streak: userData.dailyStreak
+    streak: userData.dailyStreak,
+    totalCoins: userData.coins
   };
 }
 
@@ -606,6 +615,130 @@ function search(userId, guildId, location) {
   };
 }
 
+// Pet System Functions
+function hatchPet(userId, guildId, eggType) {
+  const userData = getUserData(userId, guildId);
+  const egg = eggTypes[eggType];
+
+  if (!egg) {
+    return { success: false, message: `Invalid egg type! Available eggs: ${Object.keys(eggTypes).join(', ')}` };
+  }
+
+  if (userData.coins < egg.price) {
+    return { success: false, message: `You need **${egg.price}** coins to buy this egg! You have **${userData.coins}** coins.` };
+  }
+
+  userData.coins -= egg.price;
+  const petId = egg.pets[Math.floor(Math.random() * egg.pets.length)];
+  const petTemplate = petTypes[petId];
+
+  if (!petTemplate) {
+    return { success: false, message: 'Error hatching pet!' };
+  }
+
+  const newPet = {
+    id: userData.petIdCounter++,
+    type: petId,
+    name: petTemplate.name,
+    rarity: petTemplate.rarity,
+    boost: { ...petTemplate.boost },
+    hunger: 100,
+    xp: 0,
+    level: 1,
+    hatchedAt: Date.now(),
+  };
+
+  userData.pets.push(newPet);
+
+  if (!userData.equippedPet) {
+    userData.equippedPet = newPet.id;
+  }
+
+  saveSimulatorData();
+
+  return {
+    success: true,
+    pet: newPet,
+    eggName: egg.name,
+    totalCoins: userData.coins,
+  };
+}
+
+function feedPet(userId, guildId, petId) {
+  const userData = getUserData(userId, guildId);
+  const pet = userData.pets.find(p => p.id === parseInt(petId));
+
+  if (!pet) {
+    return { success: false, message: `Pet with ID **${petId}** not found!` };
+  }
+
+  const feedCost = 50;
+  if (userData.coins < feedCost) {
+    return { success: false, message: `You need **${feedCost}** coins to feed your pet! You have **${userData.coins}** coins.` };
+  }
+
+  if (pet.hunger >= 100) {
+    return { success: false, message: `${pet.name} is already full!` };
+  }
+
+  userData.coins -= feedCost;
+  pet.hunger = Math.min(100, pet.hunger + 30);
+  pet.xp += 10;
+
+  if (pet.xp >= calculateXPNeeded(pet.level)) {
+    pet.level++;
+    pet.xp = 0;
+    
+    if (pet.boost.type === 'coins') {
+      pet.boost.value += 0.05;
+    } else if (pet.boost.type === 'xp') {
+      pet.boost.value += 0.05;
+    } else if (pet.boost.type === 'rarity') {
+      pet.boost.value += 0.02;
+    } else if (pet.boost.type === 'cooldown') {
+      pet.boost.value = Math.max(0.5, pet.boost.value - 0.02);
+    }
+  }
+
+  saveSimulatorData();
+
+  return {
+    success: true,
+    pet: pet,
+    leveledUp: pet.xp === 0,
+    totalCoins: userData.coins,
+  };
+}
+
+function viewPets(userId, guildId) {
+  const userData = getUserData(userId, guildId);
+  
+  return {
+    success: true,
+    pets: userData.pets,
+    equippedPet: userData.equippedPet,
+    totalCoins: userData.coins,
+  };
+}
+
+function equipPet(userId, guildId, petId) {
+  const userData = getUserData(userId, guildId);
+  const pet = userData.pets.find(p => p.id === parseInt(petId));
+
+  if (!pet) {
+    return { success: false, message: `Pet with ID **${petId}** not found!` };
+  }
+
+  userData.equippedPet = pet.id;
+  saveSimulatorData();
+
+  return {
+    success: true,
+    pet: pet,
+    message: `You equipped ${pet.name}!`,
+  };
+}
+
 module.exports = {
   getUserData,
   saveSimulatorData,
@@ -614,6 +747,7 @@ module.exports = {
   oreTypes,
   cropTypes,
   petTypes,
+  eggTypes,
   potions,
   performFish,
   performMine,
@@ -625,6 +759,10 @@ module.exports = {
   beg,
   crime,
   search,
+  hatchPet,
+  feedPet,
+  viewPets,
+  equipPet,
   calculateXPNeeded,
   addXP,
 };
